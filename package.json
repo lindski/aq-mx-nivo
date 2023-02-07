@@ -1,0 +1,40 @@
+{
+  "name": "aqnivo",
+  "widgetName": "AqNivo",
+  "version": "1.0.0",
+  "description": "Wrapper around multiple Nivo components (https://github.com/plouc/nivo)",
+  "copyright": "© AuraQ Limited 2023. All rights reserved.",
+  "author": "Iain Lindsay",
+  "engines": {
+    "node": ">=12"
+  },
+  "license": "Apache-2.0",
+  "config": {
+    "projectPath": "./tests/testProject",
+    "mendixHost": "http://localhost:8080",
+    "developmentPort": 3000
+  },
+  "packagePath": "auraq",
+  "scripts": {
+    "start": "pluggable-widgets-tools start:server",
+    "dev": "pluggable-widgets-tools start:web",
+    "build": "pluggable-widgets-tools build:web",
+    "lint": "pluggable-widgets-tools lint",
+    "lint:fix": "pluggable-widgets-tools lint:fix",
+    "prerelease": "npm run lint",
+    "release": "pluggable-widgets-tools release:web"
+  },
+  "devDependencies": {
+    "@mendix/pluggable-widgets-tools": "^9.0.0",
+    "@types/big.js": "^6.0.2",
+    "@types/react": "~17.0.1",
+    "@types/react-dom": "~17.0.1"
+  },
+  "dependencies": {
+    "@nivo/bump": "^0.80.0",
+    "@nivo/chord": "^0.80.0",
+    "@nivo/core": "^0.80.0",
+    "@nivo/radial-bar": "^0.80.0",
+    "classnames": "^2.2.6"
+  }
+}

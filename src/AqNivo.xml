@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<widget id="auraq.aqnivo.AqNivo" pluginWidget="true" needsEntityContext="true" offlineCapable="true"
+        supportedPlatform="Web"
+        xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
+    <name>Aq Nivo</name>
+    <description>Wrapper around multiple Nivo components (https://github.com/plouc/nivo)</description>
+    <icon/>
+    <properties>
+        <propertyGroup caption="General">
+            <property key="chartData" type="attribute" required="true">
+                <caption>Chart Data</caption>
+                <description />
+                <attributeTypes>
+                    <attributeType name="String" />
+                </attributeTypes>
+            </property>
+            <property key="dynamicConfiguration" type="attribute" required="true">
+                <caption>Configuration (from attribute)</caption>
+                <description>Set configuration from JSON held in an attribute</description>
+                <attributeTypes>
+                    <attributeType name="String" />
+                </attributeTypes>
+            </property>
+            <property key="staticConfiguration" type="string" multiline="true" required="false">
+                <caption>Configuration (static)</caption>
+                <description>Set configuration from JSON held in a static value</description>
+            </property>
+            <property key="containerHeight" type="integer" defaultValue="400" required="true">
+                <caption>Container Height</caption>
+                <description>The height of the parent container, in pixels</description>
+            </property>
+            <property key="chartType" type="enumeration" defaultValue="ResponsiveRadialBar">
+                <caption>Chart Type</caption>
+                <description>What chart to render</description>
+                <enumerationValues>
+                    <enumerationValue key="ResponsiveRadialBar">Radial Bar</enumerationValue>
+                    <enumerationValue key="ResponsiveAreaBump">Area Bump</enumerationValue>
+                    <enumerationValue key="ResponsiveChord">Chord</enumerationValue>
+                </enumerationValues>
+            </property>
+        </propertyGroup>
+    </properties>
+</widget>
