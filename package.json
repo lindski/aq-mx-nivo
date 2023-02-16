@@ -31,9 +31,12 @@
     "@types/react-dom": "~17.0.1"
   },
   "dependencies": {
+    "@nivo/bar": "^0.80.0",
     "@nivo/bump": "^0.80.0",
     "@nivo/chord": "^0.80.0",
     "@nivo/core": "^0.80.0",
+    "@nivo/line": "^0.80.0",
+    "@nivo/radar": "^0.80.0",
     "@nivo/radial-bar": "^0.80.0",
     "classnames": "^2.2.6"
   }

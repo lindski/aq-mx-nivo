@@ -37,6 +37,9 @@
                     <enumerationValue key="ResponsiveRadialBar">Radial Bar</enumerationValue>
                     <enumerationValue key="ResponsiveAreaBump">Area Bump</enumerationValue>
                     <enumerationValue key="ResponsiveChord">Chord</enumerationValue>
+                    <enumerationValue key="ResponsiveBar">Bar</enumerationValue>
+                    <enumerationValue key="ResponsiveLine">Line</enumerationValue>
+                    <enumerationValue key="ResponsiveRadar">Radar</enumerationValue>
                 </enumerationValues>
             </property>
         </propertyGroup>

@@ -3,6 +3,9 @@ import { AqNivoContainerProps, ChartTypeEnum } from "../typings/AqNivoProps";
 import { ResponsiveRadialBar } from "@nivo/radial-bar";
 import { ResponsiveAreaBump } from "@nivo/bump";
 import { ResponsiveChord } from "@nivo/chord";
+import { ResponsiveRadar } from "@nivo/radar";
+import { ResponsiveBar } from "@nivo/bar";
+import { ResponsiveLine } from "@nivo/line";
 
 import "./ui/AqNivo.css";
 
@@ -68,6 +71,14 @@ export function AqNivo({
             case "ResponsiveChord":
                 return (
                     <ResponsiveChord data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />
+                );
+            case "ResponsiveLine":
+                return <ResponsiveLine data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />;
+            case "ResponsiveBar":
+                return <ResponsiveBar data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />;
+            case "ResponsiveRadar":
+                return (
+                    <ResponsiveRadar data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />
                 );
             default:
                 return <div></div>;
