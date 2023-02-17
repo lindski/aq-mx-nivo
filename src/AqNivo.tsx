@@ -1,4 +1,4 @@
-import { ReactElement, createElement } from "react";
+import { ReactElement, createElement, Fragment } from "react";
 import { AqNivoContainerProps } from "../typings/AqNivoProps";
 import { NivoChartContainer } from "./components/NivoChartContainer";
 
@@ -12,7 +12,7 @@ export function AqNivo({
     containerHeight
 }: AqNivoContainerProps): ReactElement {
     const getData = (): any => {
-        if (chartData.status === "available" && chartData.value && chartData.value !== "") {
+        if (chartData.value && chartData.value !== "") {
             const data = JSON.parse(chartData.value);
             console.debug("chartData", data);
             return data;
@@ -23,12 +23,7 @@ export function AqNivo({
     };
 
     const getDynamicConfiguration = (): any => {
-        if (
-            dynamicConfiguration &&
-            dynamicConfiguration.status === "available" &&
-            dynamicConfiguration.value &&
-            dynamicConfiguration.value !== ""
-        ) {
+        if (dynamicConfiguration.value && dynamicConfiguration.value !== "") {
             const configuration = JSON.parse(dynamicConfiguration.value);
 
             console.debug("chartConfiguration", configuration);
@@ -49,12 +44,20 @@ export function AqNivo({
         return {};
     };
 
+    const isReady = dynamicConfiguration.status === "available" && chartData.status === "available";
+
     return (
-        <NivoChartContainer
-            chartType={chartType}
-            data={getData()}
-            configuration={{ ...getStaticConfiguration(), ...getDynamicConfiguration() }}
-            containerHeight={containerHeight}
-        />
+        <Fragment>
+            {isReady ? (
+                <NivoChartContainer
+                    chartType={chartType}
+                    data={getData()}
+                    configuration={{ ...getStaticConfiguration(), ...getDynamicConfiguration() }}
+                    containerHeight={containerHeight}
+                />
+            ) : (
+                <div className="widget-not-ready"></div>
+            )}
+        </Fragment>
     );
 }

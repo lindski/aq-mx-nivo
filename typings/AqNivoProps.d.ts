@@ -6,7 +6,7 @@
 import { CSSProperties } from "react";
 import { EditableValue } from "mendix";
 
-export type ChartTypeEnum = "ResponsiveChord" | "ResponsiveLine" | "ResponsiveCirclePacking" | "ResponsiveAreaBump" | "ResponsiveBar" | "ResponsiveStream" | "ResponsivePie" | "ResponsiveCalendar" | "ResponsiveRadar" | "ResponsiveRadialBar";
+export type ChartTypeEnum = "ResponsiveAreaBump" | "ResponsiveBar" | "ResponsiveBullet" | "ResponsiveBump" | "ResponsiveCalendar" | "ResponsiveChord" | "ResponsiveChoropleth" | "ResponsiveCirclePacking" | "ResponsiveFunnel" | "ResponsiveGeoMap" | "ResponsiveHeatMap" | "ResponsiveLine" | "ResponsiveMarimekko" | "ResponsiveNetwork" | "ResponsivePie" | "ResponsiveRadar" | "ResponsiveRadialBar" | "ResponsiveSankey" | "ResponsiveScatterPlot" | "ResponsiveStream" | "ResponsiveSunburst" | "ResponsiveSwarmPlot" | "ResponsiveTimeRange" | "ResponsiveTreeMap" | "ResponsiveVoronoi" | "ResponsiveWaffle";
 
 export interface AqNivoContainerProps {
     name: string;
