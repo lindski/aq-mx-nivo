@@ -34,12 +34,16 @@
                 <caption>Chart Type</caption>
                 <description>What chart to render</description>
                 <enumerationValues>
-                    <enumerationValue key="ResponsiveRadialBar">Radial Bar</enumerationValue>
-                    <enumerationValue key="ResponsiveAreaBump">Area Bump</enumerationValue>
                     <enumerationValue key="ResponsiveChord">Chord</enumerationValue>
-                    <enumerationValue key="ResponsiveBar">Bar</enumerationValue>
                     <enumerationValue key="ResponsiveLine">Line</enumerationValue>
+                    <enumerationValue key="ResponsiveCirclePacking">Circle Packing</enumerationValue>
+                    <enumerationValue key="ResponsiveAreaBump">Area Bump</enumerationValue>
+                    <enumerationValue key="ResponsiveBar">Bar</enumerationValue>
+                    <enumerationValue key="ResponsiveStream">Stream</enumerationValue>
+                    <enumerationValue key="ResponsivePie">Pie</enumerationValue>
+                    <enumerationValue key="ResponsiveCalendar">Calendar</enumerationValue>
                     <enumerationValue key="ResponsiveRadar">Radar</enumerationValue>
+                    <enumerationValue key="ResponsiveRadialBar">Radial Bar</enumerationValue>
                 </enumerationValues>
             </property>
         </propertyGroup>

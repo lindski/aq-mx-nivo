@@ -1,11 +1,6 @@
 import { ReactElement, createElement } from "react";
-import { AqNivoContainerProps, ChartTypeEnum } from "../typings/AqNivoProps";
-import { ResponsiveRadialBar } from "@nivo/radial-bar";
-import { ResponsiveAreaBump } from "@nivo/bump";
-import { ResponsiveChord } from "@nivo/chord";
-import { ResponsiveRadar } from "@nivo/radar";
-import { ResponsiveBar } from "@nivo/bar";
-import { ResponsiveLine } from "@nivo/line";
+import { AqNivoContainerProps } from "../typings/AqNivoProps";
+import { NivoChartContainer } from "./components/NivoChartContainer";
 
 import "./ui/AqNivo.css";
 
@@ -54,40 +49,12 @@ export function AqNivo({
         return {};
     };
 
-    const loadComponent = (chartType: ChartTypeEnum) => {
-        switch (chartType) {
-            case "ResponsiveRadialBar":
-                return (
-                    <ResponsiveRadialBar
-                        data={getData()}
-                        {...getDynamicConfiguration()}
-                        {...getStaticConfiguration()}
-                    />
-                );
-            case "ResponsiveAreaBump":
-                return (
-                    <ResponsiveAreaBump data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />
-                );
-            case "ResponsiveChord":
-                return (
-                    <ResponsiveChord data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />
-                );
-            case "ResponsiveLine":
-                return <ResponsiveLine data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />;
-            case "ResponsiveBar":
-                return <ResponsiveBar data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />;
-            case "ResponsiveRadar":
-                return (
-                    <ResponsiveRadar data={getData()} {...getDynamicConfiguration()} {...getStaticConfiguration()} />
-                );
-            default:
-                return <div></div>;
-        }
-    };
-
     return (
-        <div className="chart-container" style={{ height: containerHeight }}>
-            {loadComponent(chartType)}
-        </div>
+        <NivoChartContainer
+            chartType={chartType}
+            data={getData()}
+            configuration={{ ...getStaticConfiguration(), ...getDynamicConfiguration() }}
+            containerHeight={containerHeight}
+        />
     );
 }

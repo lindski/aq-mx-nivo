@@ -33,11 +33,15 @@
   "dependencies": {
     "@nivo/bar": "^0.80.0",
     "@nivo/bump": "^0.80.0",
+    "@nivo/calendar": "^0.80.0",
     "@nivo/chord": "^0.80.0",
+    "@nivo/circle-packing": "^0.80.0",
     "@nivo/core": "^0.80.0",
     "@nivo/line": "^0.80.0",
+    "@nivo/pie": "^0.80.0",
     "@nivo/radar": "^0.80.0",
     "@nivo/radial-bar": "^0.80.0",
+    "@nivo/stream": "^0.80.0",
     "classnames": "^2.2.6"
   }
 }
