@@ -27,8 +27,8 @@ export interface AqNivoContainerProps {
     tabIndex?: number;
     chartType: ChartTypeEnum;
     chartData: EditableValue<string>;
-    dynamicConfiguration: EditableValue<string>;
     staticConfiguration: string;
+    dynamicConfiguration: EditableValue<string>;
     functionProperties: FunctionPropertiesType[];
     containerHeight: number;
 }
@@ -44,8 +44,8 @@ export interface AqNivoPreviewProps {
     readOnly: boolean;
     chartType: ChartTypeEnum;
     chartData: string;
-    dynamicConfiguration: string;
     staticConfiguration: string;
+    dynamicConfiguration: string;
     functionProperties: FunctionPropertiesPreviewType[];
     containerHeight: number | null;
 }
