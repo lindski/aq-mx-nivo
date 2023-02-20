@@ -8,28 +8,6 @@
     <icon/>
     <properties>
         <propertyGroup caption="General">
-            <property key="chartData" type="attribute" required="true">
-                <caption>Chart Data</caption>
-                <description />
-                <attributeTypes>
-                    <attributeType name="String" />
-                </attributeTypes>
-            </property>
-            <property key="dynamicConfiguration" type="attribute" required="true">
-                <caption>Configuration (from attribute)</caption>
-                <description>Set configuration from JSON held in an attribute</description>
-                <attributeTypes>
-                    <attributeType name="String" />
-                </attributeTypes>
-            </property>
-            <property key="staticConfiguration" type="string" multiline="true" required="false">
-                <caption>Configuration (static)</caption>
-                <description>Set configuration from JSON held in a static value</description>
-            </property>
-            <property key="containerHeight" type="integer" defaultValue="400" required="true">
-                <caption>Container Height</caption>
-                <description>The height of the parent container, in pixels</description>
-            </property>
             <property key="chartType" type="enumeration" defaultValue="ResponsiveRadialBar">
                 <caption>Chart Type</caption>
                 <description>What chart to render</description>
@@ -62,6 +40,24 @@
                     <enumerationValue key="ResponsiveWaffle">Waffle</enumerationValue>
                 </enumerationValues>
             </property>
+            <property key="chartData" type="attribute" required="true">
+                <caption>Chart Data</caption>
+                <description />
+                <attributeTypes>
+                    <attributeType name="String" />
+                </attributeTypes>
+            </property>
+            <property key="dynamicConfiguration" type="attribute" required="true">
+                <caption>Configuration (dynamic)</caption>
+                <description>Set configuration from JSON held in an attribute</description>
+                <attributeTypes>
+                    <attributeType name="String" />
+                </attributeTypes>
+            </property>
+            <property key="staticConfiguration" type="string" multiline="true" required="false">
+                <caption>Configuration (static)</caption>
+                <description>Set configuration from JSON held in a static value</description>
+            </property>
             <property key="functionProperties" type="object" isList="true" required="false">
                 <caption>Function Properties</caption>
                 <description>**USE AT YOUR OWN RISK** Any property that should have a function assigned to it</description>
@@ -83,5 +79,11 @@
                 </properties>
             </property>
         </propertyGroup>
+        <propertyGroup caption="Display">
+            <property key="containerHeight" type="integer" defaultValue="400" required="true">
+                <caption>Container Height</caption>
+                <description>The height of the parent container, in pixels</description>
+            </property>
+    </propertyGroup>
     </properties>
 </widget>
