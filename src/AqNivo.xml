@@ -62,6 +62,26 @@
                     <enumerationValue key="ResponsiveWaffle">Waffle</enumerationValue>
                 </enumerationValues>
             </property>
+            <property key="functionProperties" type="object" isList="true" required="false">
+                <caption>Function Properties</caption>
+                <description>**USE AT YOUR OWN RISK** Any property that should have a function assigned to it</description>
+                <properties>
+                    <propertyGroup caption="Function Property">
+                        <property key="propertyName" type="string" required="true">
+                            <caption>Property Name</caption>
+                            <description></description>
+                        </property>
+                        <property key="functionArguments" type="string" required="true">
+                            <caption>Function Arguments</caption>
+                            <description>Arguments for the function (comma delimited)</description>
+                        </property>
+                        <property key="functionBody" type="string" multiline="true" required="true">
+                            <caption>Function Body</caption>
+                            <description>The body of the function</description>
+                        </property>
+                    </propertyGroup>
+                </properties>
+            </property>
         </propertyGroup>
     </properties>
 </widget>

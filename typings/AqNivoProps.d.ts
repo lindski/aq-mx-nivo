@@ -8,6 +8,18 @@ import { EditableValue } from "mendix";
 
 export type ChartTypeEnum = "ResponsiveAreaBump" | "ResponsiveBar" | "ResponsiveBullet" | "ResponsiveBump" | "ResponsiveCalendar" | "ResponsiveChord" | "ResponsiveChoropleth" | "ResponsiveCirclePacking" | "ResponsiveFunnel" | "ResponsiveGeoMap" | "ResponsiveHeatMap" | "ResponsiveLine" | "ResponsiveMarimekko" | "ResponsiveNetwork" | "ResponsivePie" | "ResponsiveRadar" | "ResponsiveRadialBar" | "ResponsiveSankey" | "ResponsiveScatterPlot" | "ResponsiveStream" | "ResponsiveSunburst" | "ResponsiveSwarmPlot" | "ResponsiveTimeRange" | "ResponsiveTreeMap" | "ResponsiveVoronoi" | "ResponsiveWaffle";
 
+export interface FunctionPropertiesType {
+    propertyName: string;
+    functionArguments: string;
+    functionBody: string;
+}
+
+export interface FunctionPropertiesPreviewType {
+    propertyName: string;
+    functionArguments: string;
+    functionBody: string;
+}
+
 export interface AqNivoContainerProps {
     name: string;
     class: string;
@@ -18,6 +30,7 @@ export interface AqNivoContainerProps {
     staticConfiguration: string;
     containerHeight: number;
     chartType: ChartTypeEnum;
+    functionProperties: FunctionPropertiesType[];
 }
 
 export interface AqNivoPreviewProps {
@@ -34,4 +47,5 @@ export interface AqNivoPreviewProps {
     staticConfiguration: string;
     containerHeight: number | null;
     chartType: ChartTypeEnum;
+    functionProperties: FunctionPropertiesPreviewType[];
 }

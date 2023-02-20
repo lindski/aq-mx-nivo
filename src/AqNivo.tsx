@@ -9,7 +9,8 @@ export function AqNivo({
     dynamicConfiguration,
     staticConfiguration,
     chartType,
-    containerHeight
+    containerHeight,
+    functionProperties
 }: AqNivoContainerProps): ReactElement {
     const getData = (): any => {
         if (chartData.value && chartData.value !== "") {
@@ -26,7 +27,7 @@ export function AqNivo({
         if (dynamicConfiguration.value && dynamicConfiguration.value !== "") {
             const configuration = JSON.parse(dynamicConfiguration.value);
 
-            console.debug("chartConfiguration", configuration);
+            console.debug("Dynamic Configuration", configuration);
             return configuration;
         }
 
@@ -37,11 +38,43 @@ export function AqNivo({
         if (staticConfiguration && staticConfiguration !== "") {
             const configuration = JSON.parse(staticConfiguration);
 
-            console.debug("staticConfiguration", configuration);
+            console.debug("Static Configuration", configuration);
             return configuration;
         }
 
         return {};
+    };
+
+    const getFunctionPropertyConfiguration = (): any => {
+        if (functionProperties && functionProperties != null) {
+            const functionPropertyConfiguration: any = {};
+            functionProperties.forEach(prop => {
+                try {
+                    // eslint-disable-next-line no-new-func
+                    functionPropertyConfiguration[prop.propertyName] = new Function(
+                        prop.functionArguments,
+                        prop.functionBody
+                    );
+                } catch (e) {
+                    console.error(`Failed to parse function for property ${prop.propertyName}`);
+                }
+            });
+
+            console.debug("Function Property Configuration", functionPropertyConfiguration);
+            return functionPropertyConfiguration;
+        }
+
+        return {};
+    };
+
+    const getConfiguration = (): any => {
+        const configuration = {
+            ...getStaticConfiguration(),
+            ...getDynamicConfiguration(),
+            ...getFunctionPropertyConfiguration()
+        };
+        console.debug("Combined Configuration", configuration);
+        return configuration;
     };
 
     const isReady = dynamicConfiguration.status === "available" && chartData.status === "available";
@@ -52,7 +85,7 @@ export function AqNivo({
                 <NivoChartContainer
                     chartType={chartType}
                     data={getData()}
-                    configuration={{ ...getStaticConfiguration(), ...getDynamicConfiguration() }}
+                    configuration={getConfiguration()}
                     containerHeight={containerHeight}
                 />
             ) : (
