@@ -1,4 +1,4 @@
-import { ReactElement, createElement } from "react";
+import { ReactElement } from "react";
 import { AqNivoPreviewProps } from "../typings/AqNivoProps";
 
 export function preview({ chartType }: AqNivoPreviewProps): ReactElement {

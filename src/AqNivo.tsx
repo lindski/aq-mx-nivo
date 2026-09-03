@@ -1,4 +1,4 @@
-import { ReactElement, createElement, Fragment } from "react";
+import { Fragment, ReactElement } from "react";
 import { AqNivoContainerProps } from "../typings/AqNivoProps";
 import { NivoChartContainer } from "./components/NivoChartContainer";
 

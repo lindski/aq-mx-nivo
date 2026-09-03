@@ -1,4 +1,4 @@
-import { ReactElement, createElement } from "react";
+import { ReactElement } from "react";
 import { ChartTypeEnum } from "../../typings/AqNivoProps";
 import { ResponsiveRadialBar } from "@nivo/radial-bar";
 import { ResponsiveAreaBump, ResponsiveBump } from "@nivo/bump";

@@ -1,4 +1,3 @@
-tests/testProject/deployment
 .DS_Store
 .idea
 .vscode
@@ -12,8 +11,11 @@ mxproject
 coverage
 
 **/results
-mendixProject
 **/e2e/diffs
 **/screenshot
 **/screenshot-results
 **/artifacts
+
+# The Mendix test app is a separate Team Server repository. Never track a Mendix model here:
+# it is binary and rewritten on every Studio Pro save, so git cannot delta it.
+tests/
