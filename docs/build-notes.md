@@ -74,6 +74,36 @@ AuraQ widget is shipping today with `id="com.auraq.aggrid.AgGrid"` against
 - **Did not fire — React Compiler lint rules.** `npm run lint` passes with two warnings and no
   errors. Nothing in 1.x holds a ref across render.
 
+## Jest's `testMatch` cannot survive a checkout under a dot-directory on Windows
+
+**Verified by observation, 2026-09-03.** The toolchain's Jest config globs
+`<rootDir>/**/*.spec.{js,jsx,ts,tsx}`. This repository lives under `…/dev/.aq/aq-mx-nivo`, and
+`<rootDir>` expands to a path with **mixed separators**, so the pattern Jest actually evaluates is:
+
+```
+C:/Users/IainLindsay/Documents/dev\.aq/aq-mx-nivo/src/**/*.spec.{js,jsx,ts,tsx}
+```
+
+In a glob a backslash is an **escape character**. `dev\.aq` therefore reads as `dev` followed by a
+literal `.aq` with no separator between them, and the pattern matches nothing. Jest reports:
+
+```
+No tests found, exiting with code 1
+  14 files checked.
+  testMatch: …/src/**/*.spec.{js,jsx,ts,tsx} - 0 matches
+  testPathIgnorePatterns: \\node_modules\\ - 14 matches
+```
+
+That reads as a problem with the spec files — it names them, counts them, and says they were
+checked — rather than with the directory they sit under. Two of the three numbers are even correct.
+
+**The fix is `testRegex`**, which has no escaping. Jest refuses both at once, so `jest.config.js`
+sets `testMatch: undefined` alongside it.
+
+**Generalises beyond Jest**: any tool that interpolates a Windows path into a glob will do this, and
+an AuraQ widget checkout normally *is* under `.aq/`. Suspect it whenever a path-based match finds
+nothing in a directory that demonstrably contains the files.
+
 ## Nivo 0.80 → 0.99 compiled with no type errors, and that proves less than it looks
 
 **Verified by observation, and read carefully.** The build succeeded against Nivo 0.99.0 without a
@@ -93,22 +123,29 @@ One structural change is already visible in the dependency tree: **theming has m
 **Verified by observation.** Measured on a **dev** build (`npm run build`) — *not* comparable to a
 release build, which is several times smaller and is the only figure worth quoting anywhere:
 
-| | 1.0.0 (`.mpk`, dev) | 2.0.0 foundations (`.mpk`, dev) |
-|---|---|---|
-| `AqNivo.js` | 4,832,718 B | 4,520,926 B |
-| `AqNivo.mjs` | 4,723,862 B | 4,455,412 B |
-| `.mpk` total | 2,887,006 B | 2,280,732 B |
-| `AqNivo.editorPreview.js` | 5,561 B | 5,434 B |
-| `AqNivo.editorConfig.js` | 868 B | 791 B |
+| | 1.0.0 | 2.0.0 foundations | 2.0.0 property surface |
+|---|---|---|---|
+| `AqNivo.js` | 4,832,718 B | 4,520,926 B | 4,594,581 B |
+| `.mpk` total | 2,887,006 B | 2,280,732 B | 2,346,641 B |
+| `AqNivo.editorPreview.js` | 5,561 B | 5,434 B | 55,539 B |
+| `AqNivo.editorConfig.js` | 868 B | 791 B | 14,156 B |
 
-The reduction is Nivo's, not ours — nothing has been code-split yet. **Every `@nivo` package is
-still statically reachable**, because all 26 chart elements are constructed in an object literal
-before one is selected. That is the whole of B-01 and it is untouched by these foundations.
+**Every figure here is from a `build`, not a `release`** — several times smaller is what a release
+gives, and a release figure is the only one worth quoting anywhere.
 
-The design-time bundles are small **only because the preview renders a `<div>` containing the enum
-key**. Implementing a real preview without a static stand-in would drag Nivo into a bundle Studio Pro
-loads on project open — the measured cost of that mistake on a comparable widget was an
-`editorPreview.js` of 5,384,494 B.
+The runtime bundle grew ~74 KB for the whole property surface, the safe parsing, the error boundary
+and the injected styles. **B-01 is untouched**: every `@nivo` package is still statically imported by
+`src/charts/registry.tsx`, so all 26 are still in the bundle. What changed is that only the *selected*
+chart is now constructed — 1.x built all 26 React elements on every render and discarded 25 (C-06).
+The registry indirection exists so that code splitting is later a change to that one file.
+
+**The design-time bundles are the number to watch, and they are healthy.** `editorPreview.js` grew
+from 5 KB to 55 KB by gaining a real preview — thirteen hand-drawn SVG chart stand-ins — and
+`editorConfig.js` from 0.8 KB to 14 KB by gaining `check()`. Both remain Nivo-free, confirmed by
+grepping the built bundle: the only `nivo` matches are CSS class names and enum key strings, with no
+`@nivo/core`, `useTheme`, `d3Scale` or `react-spring`. For scale, the same mistake made on a
+comparable widget produced an `editorPreview.js` of 5,384,494 B. **Grep the bundle rather than
+trusting the layering rule** — the rule is textual and a determined import can route around it.
 
 ## `projectPath` falls through harmlessly when it points at nothing
 

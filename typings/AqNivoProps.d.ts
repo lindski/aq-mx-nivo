@@ -3,7 +3,8 @@
  * WARNING: All changes made to this file will be overwritten
  * @author Mendix Widgets Framework Team
  */
-import { EditableValue } from "mendix";
+import { DynamicValue, EditableValue } from "mendix";
+import { Big } from "big.js";
 import { CSSProperties } from "react";
 
 export type ChartTypeEnum =
@@ -40,6 +41,8 @@ export interface FunctionPropertiesType {
     functionBody: string;
 }
 
+export type HeightModeEnum = "pixels" | "aspectRatio" | "fillParent";
+
 export interface FunctionPropertiesPreviewType {
     propertyName: string;
     functionArguments: string;
@@ -51,12 +54,16 @@ export interface AqNivoContainerProps {
     class: string;
     style?: CSSProperties;
     tabIndex?: number;
+    chartDataJson: EditableValue<string>;
     chartType: ChartTypeEnum;
-    chartData: EditableValue<string>;
     staticConfiguration: string;
-    dynamicConfiguration: EditableValue<string>;
+    dynamicConfiguration?: EditableValue<string>;
     functionProperties: FunctionPropertiesType[];
+    heightMode: HeightModeEnum;
     containerHeight: number;
+    aspectRatio: Big;
+    emptyMessage?: DynamicValue<string>;
+    ariaLabel?: DynamicValue<string>;
 }
 
 export interface AqNivoPreviewProps {
@@ -70,10 +77,14 @@ export interface AqNivoPreviewProps {
     readOnly: boolean;
     renderMode: "design" | "xray" | "structure";
     translate: (text: string) => string;
+    chartDataJson: string;
     chartType: ChartTypeEnum;
-    chartData: string;
     staticConfiguration: string;
     dynamicConfiguration: string;
     functionProperties: FunctionPropertiesPreviewType[];
+    heightMode: HeightModeEnum;
     containerHeight: number | null;
+    aspectRatio: number | null;
+    emptyMessage: string;
+    ariaLabel: string;
 }

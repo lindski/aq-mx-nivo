@@ -22,13 +22,14 @@
     "lint": "pluggable-widgets-tools lint",
     "lint:fix": "pluggable-widgets-tools lint:fix",
     "check:layers": "node scripts/check-layers.mjs",
-    "test": "jest --config jest.config.js --passWithNoTests",
+    "test": "jest --config jest.config.js",
     "prerelease": "npm run lint && npm run check:layers && npm run test",
     "release": "pluggable-widgets-tools release:web"
   },
   "devDependencies": {
     "@mendix/pluggable-widgets-tools": "11.12.0",
-    "@prettier/plugin-xml": "^1.2.0"
+    "@prettier/plugin-xml": "^1.2.0",
+    "@types/big.js": "^6.2.2"
   },
   "dependencies": {
     "@nivo/bar": "^0.99.0",

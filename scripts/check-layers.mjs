@@ -224,6 +224,39 @@ if (existsSync(packageJsonPath) && existsSync(packageXmlPath)) {
     }
 }
 
+// --- 8: the chart type vocabulary is declared twice, so check it agrees ----------------------
+
+/**
+ * `src/charts/chartTypes.ts` declares the chart types as a plain union so that the Mendix-free layer
+ * does not have to import the generated typings — importing `ChartTypeEnum` there would break the
+ * layering rule above for the sake of one string union.
+ *
+ * That leaves the vocabulary declared in two places. Rather than trust them to stay in step, assert
+ * it: the enumeration keys in the widget XML and the entries in CHART_TYPES must be the same set.
+ * Add a chart type to one and the build fails until it is added to the other.
+ */
+const chartTypesPath = join(srcDir, "charts", "chartTypes.ts");
+
+if (existsSync(widgetXmlPath) && existsSync(chartTypesPath)) {
+    const xmlKeys = [...readFileSync(widgetXmlPath, "utf8").matchAll(/<enumerationValue\s+key="([^"]*)"/g)]
+        .map(m => m[1])
+        .filter(k => k.startsWith("Responsive"));
+
+    const source = readFileSync(chartTypesPath, "utf8");
+    const block = /export const CHART_TYPES = \[([\s\S]*?)\] as const;/.exec(source)?.[1] ?? "";
+    const tsKeys = [...block.matchAll(/"([^"]+)"/g)].map(m => m[1]);
+
+    const missingInTs = xmlKeys.filter(k => !tsKeys.includes(k));
+    const missingInXml = tsKeys.filter(k => !xmlKeys.includes(k));
+
+    for (const key of missingInTs) {
+        report("src/charts/chartTypes.ts", 1, `CHART_TYPES`, `is missing "${key}", which AqNivo.xml declares`);
+    }
+    for (const key of missingInXml) {
+        report("src/AqNivo.xml", 1, `<enumerationValue>`, `is missing "${key}", which CHART_TYPES declares`);
+    }
+}
+
 // --- 6: identity agreement ------------------------------------------------------------------
 
 /**

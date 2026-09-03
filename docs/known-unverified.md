@@ -1,43 +1,65 @@
 # Known unverified
 
 What this repository **cannot** prove, and what to check first in a running app. Everything here can
-be built, linted and packaged outside Mendix; almost none of it can be *verified* there.
+be built, linted, unit-tested and packaged outside Mendix; almost none of it can be *verified* there.
 
-Keep this file honest. A claim that moves from here into `build-notes.md` should move because
-something was observed, not because it seemed likely.
+Keep this file honest. A claim moves out of here when something was observed, not when it seems
+likely.
 
-Status as of **2026-09-03**, after the 2.0 foundations work (Phase 0). The widget's behaviour is
-still 1.x behaviour — only the toolchain, identity and release discipline have changed.
+Status as of **2026-09-03**, after the 2.0 property surface and correctness work.
 
 ---
 
 ## Check these first, in this order
 
-### 1. Does the renamed widget load at all?
+### 1. Does the renamed widget load, and does the new property sheet appear?
 
-The id, `packagePath` and internal files path all changed together. Nothing in the build compares
-them, and a mismatch packages cleanly.
+The id, `packagePath` and internal files path changed together, and the property surface was then
+rewritten wholesale. Nothing in the build compares the identity triple beyond
+`scripts/check-layers.mjs` rule 6, and a widget XML that builds, lints and packages **has not been
+validated** — Studio Pro is the only thing that validates it.
 
-- Delete `widgets/auraq.AqNivo.mpk`, install `com.auraq.AqNivo.mpk`, run **Clean Deployment
-  Directory**, then F4.
-- A widget that fails to load reports **"Could not find widget"** on every page using it — which
-  names no cause.
-- Read `deployment/log/app_bundle_log.txt` rather than the dialog. Studio Pro's second bundler
-  reports failures with **an empty error string** in the dialog itself.
+- Delete `widgets/auraq.AqNivo.mpk` **only when `NivoTestDataOld` goes** — until then both widgets
+  coexist deliberately, with different ids and different `.mpk` names.
+- Install `com.auraq.AqNivo.mpk`, run **Clean Deployment Directory**, then F4.
+- A widget Studio Pro refuses reports **"Could not find widget"** on every page using it, naming no
+  cause. The real message is in `deployment/log/app_bundle_log.txt`, not in the dialog — Studio Pro's
+  second bundler frequently reports failures with an empty error string.
 
-### 2. Do the 26 sample configurations still render under Nivo 0.99?
+### 2. Does `check()` actually run?
 
-**This is the open question the build cannot answer.** The upgrade from 0.80 compiled with zero type
-errors, but every payload path is typed `any`, so a renamed or removed Nivo prop surfaces only at
-runtime, inside Nivo.
+Every rule has been exercised against the **built** `AqNivo.editorConfig.js`, which is the exact file
+Studio Pro loads — nine scenarios, all producing the expected severity and message. That proves the
+code is right. It does **not** prove Studio Pro is running it.
 
-The old samples are live in the test app as the `NivoTestDataOld` module. Render each one and record
-what breaks. Where a sample and the Nivo 0.99 documentation disagree, **the documentation wins** —
-nothing depends on the 0.80 shapes surviving, because there is no existing consumer to migrate.
+- Studio Pro loads a widget's design-time JS **when the project is opened** and caches it for that
+  project's lifetime. **Close and reopen the project** after installing, and confirm the `.mpk`
+  timestamp actually moved first.
+- Place an instance with a deliberately malformed static configuration and confirm the error appears.
+- `ped_check_errors` returns `check()` output verbatim with the widget's JSON path, so this is
+  automatable — but **treat zero results as "the widget has not been reloaded", never as "the rules
+  regressed"**. A stale bundle still reports the old rules; silence means the design-time JS is not
+  executing at all.
 
-Known structural change to look at first: **theming moved out of `@nivo/core` into `@nivo/theming`**.
+### 3. Does the page-editor preview render, and at the right size?
 
-### 3. Is the `zip-a-folder` pin still needed?
+Thirteen static SVG stand-ins, one per chart family, sized by `heightMode`. Verified only as a bundle
+that builds and stays Nivo-free. Whether each drawing reads as the chart it stands for — and whether
+`fillParent` behaves sanely inside the page editor — needs eyes on the modeler.
+
+### 4. Do the 26 sample configurations still render under Nivo 0.99?
+
+**Still the open question, and the build cannot answer it.** The upgrade compiled with zero type
+errors because the payload boundary in `src/charts/registry.tsx` is `any` — deliberately, since 26
+Nivo components have mutually incompatible prop types — so a renamed or removed prop surfaces only at
+runtime.
+
+The old samples are live in the test app as `NivoTestDataOld`. Render each and record what breaks.
+Where a sample and the Nivo 0.99 documentation disagree, the documentation wins: there is no existing
+consumer to migrate. Known structural change to look at first: **theming moved out of `@nivo/core`
+into `@nivo/theming`**.
+
+### 5. Is the `zip-a-folder` pin still needed?
 
 `overrides` pins it to 6.1.1 to avoid a native `@napi-rs/lzma` binary that will not install on Node
 22.18.0. That is a property of one machine's Node version, not of this widget. On Node ≥ 22.20,
@@ -48,42 +70,58 @@ remove the override and confirm the build still packages.
 ## Unverified by nature — these need a running app, always
 
 - **`new Function` and Content-Security-Policy.** Function properties compile with `new Function`,
-  which requires `unsafe-eval`. If Mendix Cloud's default policy omits it, the feature is **inert in
-  production while working perfectly locally**. Untested. This is the worst-shaped failure in the
-  widget: it cannot be found in development.
-- **Malformed JSON takes down the page, not just the widget.** Three unguarded `JSON.parse` calls run
-  inside render. Reasoned from React's error semantics in the Mendix client; not reproduced here.
-- **The 200-character truncation path.** A String attribute left at the Mendix default truncates chart
-  JSON into malformed JSON, landing on the above. Documented as the most likely first experience of a
-  new user; not measured.
-- **Any design-time change.** Studio Pro loads a widget's design-time JS **when the project is
-  opened** and caches it for the life of that project. After any `editorConfig.ts` change: confirm the
-  `.mpk` timestamp actually moved, then close and reopen the project. A rebuilt `check()` otherwise
-  silently does nothing, and the symptom — two unrelated design-time features broken together —
-  points at a bad import rather than a stale host.
+  which requires `unsafe-eval`. If Mendix Cloud's default policy omits it, the constructor throws and
+  the widget reports it honestly — but **in production, against a widget that worked in development**.
+  Untested, and the worst-shaped failure here because it cannot be found locally.
+- **Whether `role="img"` plus `aria-label` is the right announcement** for a chart in the Mendix
+  client, and how it interacts with the surrounding page structure. Needs a screen reader, not a
+  reading of the spec. There is no tabular alternative yet — `renderDataTable` is not built.
+- **The empty and error states in a real layout.** They are styled now, where 1.x emitted class names
+  no stylesheet defined, so the failure states were zero-height and invisible. Whether they *read*
+  correctly inside an Atlas card is a different question.
+- **`heightMode: fillParent`.** `check()` warns that it needs an ancestor with a real height, because
+  Mendix layouts rarely give one and the failure is a chart of zero height that renders nothing,
+  silently. Whether the warning is too noisy in practice is a judgement to make after using it.
+- **The error boundary actually catching a Nivo throw.** Its reset key and fallback are exercised by
+  reasoning, not by a test that makes Nivo throw. Worth constructing deliberately — a Sankey whose
+  link names a node that does not exist is the usual way in.
 - **Release bundle size.** Every figure in `build-notes.md` is from a **dev** build. `build` and
   `release` write the same path, and a stale dev artefact is indistinguishable by name, location or
-  apparent validity — it installs and runs correctly. Delete `dist/<version>/` first, run
-  `npm run release`, and confirm the artefact carries `dependencies.txt`/`.json`.
-- **Whether `type="selection"` is usable for a chart datum.** It is the sanctioned route from a
-  widget's selection to a microflow, and it publishes a page variable that a microflow parameter
-  binds to — but it was verified on a grid, where a "row" is obviously an object. Whether a chart
-  datum reads naturally the same way is untested.
+  apparent validity. Delete `dist/<version>/` first, run `npm run release`, and confirm the artefact
+  carries `dependencies.txt`/`.json`.
 
 ---
 
-## Not yet true, and known not to be
+## Known limitations, deliberately shipped
 
-Listed so nobody mistakes an unfinished thing for a broken one. All of this is 2.0 Phase 2 work:
+Listed so nobody reports them as defects.
 
-- `check:layers` reports **8 violations** in the 1.x source. That is the starting point, not a
-  regression — seven console calls on the render path, and one generated-typings import from a
-  component that must become Mendix-free.
-- `npm test` runs **zero** tests and passes via `--passWithNoTests`. There is no Mendix-free layer to
-  test yet; the flag comes out in the same commit as the first test.
-- `editorConfig.ts` is still the generated stub — `getProperties` returns `defaultProperties`
-  unchanged, `check` returns `[]`, and there is no `getCustomCaption`.
-- The page-editor preview still renders `<div>{chartType}</div>` — the literal enum key.
-- Nothing is code-split. Every `@nivo` package is statically reachable, because all 26 chart elements
-  are constructed before one is selected.
-- There are no system properties, no action properties, no theming hook and no accessibility surface.
+- **Geo Map does not use the bound Chart data at all.** `ResponsiveGeoMap` has no meaningful `data`
+  prop — its geography arrives through `features`, which this widget can only supply through the
+  configuration JSON. Choropleth needs `features` too, in addition to its `data` array. `check()`
+  warns on Geo Map; there is no warning for Choropleth because its data binding is genuinely used.
+  Bundling world-countries GeoJSON as a lazy chunk is the intended fix, once code splitting lands.
+- **Configuration merging is shallow.** A nested object in the dynamic configuration replaces the
+  static one rather than blending with it. Deliberate: a deep merge makes it impossible to *remove* a
+  nested default, and a half-overridden axis configuration is far worse to debug than a replaced one.
+- **The chart-type vocabulary is declared twice** — in `AqNivo.xml` and in `src/charts/chartTypes.ts`
+  — because the Mendix-free layer must not import the generated typings. `check:layers` rule 8
+  asserts the two sets are identical, so drift fails the build.
+
+---
+
+## Not yet built, and known not to be
+
+All of this is the remainder of 2.0:
+
+- **Nothing is code-split.** Every `@nivo` package is statically imported by
+  `src/charts/registry.tsx`, so a page using one chart still pays for all 26 (B-01). The registry
+  indirection exists to make that a change to one file.
+- **No datasource mode.** JSON is the only way data reaches the widget. When it lands, note that
+  `ListValue` has **no group-by**: the datasource must supply rows at the granularity the chart plots,
+  or a client-side aggregate over a paged datasource presents a subtotal as a total.
+- **No interactivity** — no click handler, no drill-down, no selection.
+- **No theming hook.** Nivo's `theme` is not wired to Atlas, so charts look like Nivo rather than like
+  the app unless every placement hand-writes a theme block.
+- **No Canvas variants**, so large datasets render as SVG.
+- **No tabular alternative** for screen readers.

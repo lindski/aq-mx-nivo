@@ -4,13 +4,22 @@
         xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
     <name>Aq Nivo</name>
-    <description>Wrapper around multiple Nivo components (https://github.com/plouc/nivo)</description>
+    <description>Nivo data visualisation — 26 chart types behind one property surface. Choose a chart type, bind a String attribute holding the data as JSON, and configure the chart with static JSON, an attribute holding JSON, or both.</description>
     <icon>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</icon>
     <properties>
-        <propertyGroup caption="General">
-            <property key="chartType" type="enumeration" defaultValue="ResponsiveRadialBar">
-                <caption>Chart Type</caption>
-                <description>What chart to render</description>
+        <propertyGroup caption="Data">
+            <property key="chartDataJson" type="attribute" required="true">
+                <caption>Chart data</caption>
+                <description>String attribute holding this chart's data as JSON, in the shape the selected chart type expects — see nivo.rocks for the shape per chart type. The attribute must be set to Unlimited length in the domain model: Mendix defaults a String attribute to 200 characters and truncates it silently, which turns valid chart JSON into malformed JSON. The chart then shows a parse error for a reason that is invisible from the page, and reads as a broken data source rather than a too-short column.</description>
+                <attributeTypes>
+                    <attributeType name="String" />
+                </attributeTypes>
+            </property>
+        </propertyGroup>
+        <propertyGroup caption="Chart">
+            <property key="chartType" type="enumeration" defaultValue="ResponsiveBar">
+                <caption>Chart type</caption>
+                <description>Which Nivo chart to render. Each chart type expects its own data shape and accepts its own configuration properties, so changing this usually means changing the bound data as well.</description>
                 <enumerationValues>
                     <enumerationValue key="ResponsiveAreaBump">Area Bump</enumerationValue>
                     <enumerationValue key="ResponsiveBar">Bar</enumerationValue>
@@ -40,50 +49,75 @@
                     <enumerationValue key="ResponsiveWaffle">Waffle</enumerationValue>
                 </enumerationValues>
             </property>
-            <property key="chartData" type="attribute" required="true">
-                <caption>Chart Data</caption>
-                <description />
-                <attributeTypes>
-                    <attributeType name="String" />
-                </attributeTypes>
-            </property>
+        </propertyGroup>
+        <propertyGroup caption="Configuration">
             <property key="staticConfiguration" type="string" multiline="true" required="false">
                 <caption>Configuration (static)</caption>
-                <description>Set configuration from JSON held in a static value</description>
+                <description>Chart configuration as a JSON object, typed in here and fixed at design time. Use this for everything that does not change at runtime — axes, legends, margins, colour schemes. Merged first, so a value set here is overridden by the same key in the dynamic configuration or in a function property. Must be a valid JSON object; it is checked at design time.</description>
             </property>
-            <property key="dynamicConfiguration" type="attribute" required="true">
+            <property key="dynamicConfiguration" type="attribute" required="false">
                 <caption>Configuration (dynamic)</caption>
-                <description>Set configuration from JSON held in an attribute</description>
+                <description>String attribute holding chart configuration as a JSON object, so configuration can be built or changed at runtime — a colour scheme the user picks, a legend that depends on the data. Optional: leave it unbound if all configuration is static. Merged after the static configuration, so it wins on any key set in both. The attribute must be Unlimited length for the same reason the chart data must be.</description>
                 <attributeTypes>
                     <attributeType name="String" />
                 </attributeTypes>
             </property>
             <property key="functionProperties" type="object" isList="true" required="false">
-                <caption>Function Properties</caption>
-                <description>**USE AT YOUR OWN RISK** Any property that should have a function assigned to it</description>
+                <caption>Configuration (functions)</caption>
+                <description>Nivo configuration properties whose value must be a function rather than a value — tooltips, value formatters, colour accessors. JSON cannot express a function, so these are written as a body here and compiled in the browser. Merged last, so a function property wins over the same key in either JSON configuration. Use sparingly: the bodies are not type-checked, they run with whatever Nivo passes them, and compiling them needs 'unsafe-eval' in the page's Content-Security-Policy.</description>
                 <properties>
-                    <propertyGroup caption="Function Property">
+                    <propertyGroup caption="Function property">
                         <property key="propertyName" type="string" required="true">
-                            <caption>Property Name</caption>
-                            <description></description>
+                            <caption>Property name</caption>
+                            <description>The Nivo configuration property this function is assigned to, e.g. tooltip, valueFormat, colors. Spelling is not validated — a name Nivo does not recognise is silently ignored by the chart.</description>
                         </property>
-                        <property key="functionArguments" type="string" required="true">
-                            <caption>Function Arguments</caption>
-                            <description>Arguments for the function (comma delimited)</description>
+                        <property key="functionArguments" type="string" required="false">
+                            <caption>Arguments</caption>
+                            <description>Comma-separated argument names for the function, matching what Nivo passes for this property — often a single argument such as datum or value. Leave empty for a function that takes none.</description>
                         </property>
                         <property key="functionBody" type="string" multiline="true" required="true">
-                            <caption>Function Body</caption>
-                            <description>The body of the function</description>
+                            <caption>Body</caption>
+                            <description>The function body, without the surrounding function declaration or braces. It must return a value: a body that falls off the end returns undefined, which Nivo usually renders as an empty tooltip or a missing label rather than an error. Syntax is checked at design time.</description>
                         </property>
                     </propertyGroup>
                 </properties>
             </property>
         </propertyGroup>
         <propertyGroup caption="Display">
-            <property key="containerHeight" type="integer" defaultValue="400" required="true">
-                <caption>Container Height</caption>
-                <description>The height of the parent container, in pixels</description>
+            <property key="heightMode" type="enumeration" defaultValue="pixels">
+                <caption>Height mode</caption>
+                <description>How the chart's height is decided. Nivo charts fill their container, so the container must have a height from somewhere — a chart in a container of zero height renders nothing at all, with no error.</description>
+                <enumerationValues>
+                    <enumerationValue key="pixels">Fixed pixels</enumerationValue>
+                    <enumerationValue key="aspectRatio">Aspect ratio</enumerationValue>
+                    <enumerationValue key="fillParent">Fill parent</enumerationValue>
+                </enumerationValues>
             </property>
-    </propertyGroup>
+            <property key="containerHeight" type="integer" defaultValue="400" required="true">
+                <caption>Height (px)</caption>
+                <description>Chart height in pixels. Used only when Height mode is Fixed pixels; ignored otherwise.</description>
+            </property>
+            <property key="aspectRatio" type="decimal" defaultValue="1.6" required="true">
+                <caption>Aspect ratio</caption>
+                <description>Width divided by height — 1.6 is roughly 16:10, 1 is square. The chart takes its width from the page and derives its height from this. Used only when Height mode is Aspect ratio; ignored otherwise.</description>
+            </property>
+            <property key="emptyMessage" type="textTemplate" required="false">
+                <caption>Empty message</caption>
+                <description>Shown instead of the chart when the bound data is an empty array. Without it several chart types render an empty axis frame that looks like a broken chart rather than an absence of data, and a few throw. Leave empty to use the default text.</description>
+            </property>
+        </propertyGroup>
+        <propertyGroup caption="Accessibility">
+            <property key="ariaLabel" type="textTemplate" required="false">
+                <caption>Accessible label</caption>
+                <description>Describes what the chart shows, for screen readers. A chart is an image to assistive technology: without this it is announced as nothing at all. Say what is being measured and over what, e.g. "Claims volume by month, split by peril" — not "bar chart".</description>
+            </property>
+        </propertyGroup>
+        <propertyGroup caption="Common">
+            <systemProperty key="Name"/>
+            <systemProperty key="TabIndex"/>
+        </propertyGroup>
+        <propertyGroup caption="Visibility">
+            <systemProperty key="Visibility"/>
+        </propertyGroup>
     </properties>
 </widget>

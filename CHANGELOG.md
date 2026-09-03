@@ -55,12 +55,93 @@ instance of 1.0.0 must be re-placed by hand; there is no migration and Studio Pr
   a reference module. `.prettierignore` widened from `tests/testProject/` to `tests/` accordingly —
   the toolchain's prettier glob is hardcoded to `tests/`.
 
-### Not yet done — tracked for the rest of 2.0
+### Breaking — property surface
 
-The correctness, property-surface, design-time, code-splitting, datasource, interactivity, theming
-and accessibility work. `npm run check:layers` currently reports **8 violations** in the 1.x source,
-and that is the intended starting point rather than a regression: seven console calls on the render
-path, and one generated-typings import from a component that must become Mendix-free.
+Brought forward ahead of the test app's chart gallery, so the gallery pages are built once against
+final property keys. Renaming a property key preserves the placement but loses the binding, so this
+had to land before any instance was placed.
+
+| 1.0.0 | 2.0.0 |
+|---|---|
+| `chartData` | **`chartDataJson`** — renamed |
+| `dynamicConfiguration` (required) | **optional**, as the README always claimed it was |
+| `containerHeight` | unchanged, but now one of three height modes |
+| — | **`heightMode`** — fixed pixels, aspect ratio, or fill parent |
+| — | **`aspectRatio`** |
+| — | **`emptyMessage`** — shown instead of an empty chart frame |
+| — | **`ariaLabel`** |
+| — | **System properties: Name, TabIndex, Visibility** |
+
+`functionArguments` is now optional, for a function that takes none. Every property carries a
+failure-mode-explaining description, because that text is carried verbatim into the page tooling's
+schema and is what an agent authoring a page against this widget reads.
+
+**Not `Label`** — declaring it removes `class`/`style` from the container props, and this widget needs
+them. **Not `Editability`** — meaningless for a chart.
+
+Deliberately *not* declared yet: the datasource properties, click actions, `renderMode` and the Atlas
+theming flag. Adding a property later is safe; declaring one the widget reads nowhere is not, because
+it advertises configuration that does nothing.
+
+### Fixed
+
+- **A malformed payload can no longer take down the page (C-01).** All parsing is now safe and
+  returns a result; nothing throws. The chart shows a contained error state instead. Where a value is
+  exactly 200 characters the message names the Mendix default String length as the likely cause,
+  because a truncated attribute is invisible from the page and reads as a broken data source (P-05).
+- **Nothing is rebuilt per render (C-02).** Parsing and the configuration merge are memoised on the
+  raw JSON *text*, not on prop identity, and compiled function properties are cached by source. Mendix
+  hands out new prop instances freely, so identity-keyed memoisation re-parsed on every render — and
+  Nivo, seeing what it took to be new props, re-ran its transitions continuously.
+- **`class`, `style` and `tabIndex` are applied (C-03).** 1.x declared all three and applied none, so
+  every Atlas design property and every class set in Studio Pro was silently discarded — which from
+  the app side looks like a CSS bug in perfectly correct SCSS.
+- **`ValueStatus` is compared to the enum, and loading renders a skeleton (C-04, C-05).** 1.x rendered
+  a div whose class had no CSS: a zero-height element, so loading and broken looked identical.
+- **An empty payload renders the empty message, not an empty axis frame (C-11).**
+- **An error boundary contains a Nivo throw (C-12)**, resetting when its inputs change.
+- **One chart element is constructed per render, not 26 (C-06).** Does not yet fix the bundle — see
+  below.
+- **No console logging on the render path (C-08).** 1.x wrote whole datasets to the console on every
+  render, in production. `check:layers` now fails the build on it.
+- **`any` is confined to one boundary (C-10)** — the registry, where 26 mutually incompatible Nivo
+  prop types genuinely meet one configuration payload. Everything else is typed.
+
+### Added — design time
+
+- **`check()`**, replacing the generated stub: configuration that will not parse, function bodies that
+  will not compile or never return, height values that would render nothing, the Geo Map data-binding
+  limitation, and a missing accessible label. Errors where the choice was deliberate, warnings where
+  it was a default. Every rule verified by requiring the **built** `editorConfig.js` — the exact file
+  Studio Pro loads.
+- **A faithful static preview**, replacing `<div>{chartType}</div>` — thirteen hand-drawn SVG chart
+  stand-ins, sized by the height properties, with no Nivo import. A grey box makes a page impossible
+  to lay out and sizing properties impossible to judge.
+- **`getCustomCaption()`** — the page tree now reads "Nivo Bar" rather than "Aq Nivo" eight times.
+- **`getProperties()` deliberately hides nothing.** `containerHeight` and `aspectRatio` are
+  mode-specific, but hiding them on `heightMode` would derive visibility from a property being edited
+  in the same sheet — which reshapes the sheet in use and has been observed showing the wrong value
+  against the right caption. Hidden properties are also unwritable by page tooling. `check()` warnings
+  carry the same information at neither cost.
+
+### Changed
+
+- **Styles are injected from JS, and `src/ui/AqNivo.css` is gone.** One definition serves the runtime
+  and `getPreviewCss()`. The old file styled none of the class names the code emitted.
+- **`src/components/NivoChartContainer.tsx` is replaced** by a Mendix-free `NivoChart` plus a chart
+  registry, so the preview and the runtime can share an implementation and the logic is unit-testable
+  with no Mendix runtime.
+- **`jest.config.js` uses `testRegex`, not the inherited `testMatch`** — see `docs/build-notes.md`.
+  A checkout under a dot-directory on Windows makes the inherited glob match nothing while reporting
+  it as a problem with the spec files.
+- `@types/big.js` restored: `decimal` properties arrive as `Big`, so it is used now.
+
+### Still not done — the rest of 2.0
+
+Code splitting (B-01 — a page using one chart still pays for all 26), datasource mode, click-through
+and selection, the Atlas theming hook, Canvas variants, and a tabular alternative for screen readers.
+`npm run check:layers` and `npm test` both pass; `docs/known-unverified.md` lists what only a running
+app can confirm.
 
 ## 1.0.0 — 2023-02-20
 

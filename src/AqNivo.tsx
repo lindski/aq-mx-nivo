@@ -1,96 +1,118 @@
-import { Fragment, ReactElement } from "react";
+import { ReactElement, useEffect, useMemo } from "react";
+import { ValueStatus } from "mendix";
+
 import { AqNivoContainerProps } from "../typings/AqNivoProps";
-import { NivoChartContainer } from "./components/NivoChartContainer";
+import { NivoChart } from "./components/NivoChart";
+import { ensureStyles } from "./ui/styles";
 
-import "./ui/AqNivo.css";
+/**
+ * The Mendix adapter — **the only file in this widget permitted to import `mendix`**.
+ *
+ * Its whole job is to turn Mendix values into plain ones and hand them to `NivoChart`, which knows
+ * nothing about Mendix and can therefore be shared with the page-editor preview and unit-tested with
+ * no runtime at all. `scripts/check-layers.mjs` enforces that boundary as a build failure.
+ */
 
-export function AqNivo({
-    chartData,
-    dynamicConfiguration,
-    staticConfiguration,
-    chartType,
-    containerHeight,
-    functionProperties
-}: AqNivoContainerProps): ReactElement {
-    const getData = (): any => {
-        if (chartData.value && chartData.value !== "") {
-            const data = JSON.parse(chartData.value);
-            console.debug("chartData", data);
-            return data;
-        }
+const DEFAULT_EMPTY_MESSAGE = "No data to display.";
 
-        console.debug("chartData", []);
-        return [];
-    };
+export function AqNivo(props: AqNivoContainerProps): ReactElement {
+    const {
+        chartDataJson,
+        chartType,
+        staticConfiguration,
+        dynamicConfiguration,
+        functionProperties,
+        heightMode,
+        containerHeight,
+        aspectRatio,
+        emptyMessage,
+        ariaLabel,
+        class: className,
+        style,
+        tabIndex
+    } = props;
 
-    const getDynamicConfiguration = (): any => {
-        if (dynamicConfiguration.value && dynamicConfiguration.value !== "") {
-            const configuration = JSON.parse(dynamicConfiguration.value);
+    useEffect(() => ensureStyles(typeof document === "undefined" ? undefined : document), []);
 
-            console.debug("Dynamic Configuration", configuration);
-            return configuration;
-        }
+    /*
+     * The value arrives AFTER first render.
+     *
+     * Rendering an empty chart in the meantime shows the user an empty frame that then silently
+     * fills in, which reads as data loss. A skeleton says "not yet" (C-05). 1.x rendered
+     * `<div className="widget-not-ready">`, for which no CSS existed — a zero-height empty element,
+     * so the loading state was indistinguishable from a broken one.
+     *
+     * This gates on an *attribute*, which is correct: an attribute genuinely has no value yet. It
+     * would be wrong for a datasource — never gate a wrapped instance on `status === "available"`
+     * there, because every reload then unmounts and remounts it. That distinction matters when
+     * datasource mode lands.
+     */
+    const loading =
+        chartDataJson.status === ValueStatus.Loading ||
+        (dynamicConfiguration !== undefined && dynamicConfiguration.status === ValueStatus.Loading);
 
-        return {};
-    };
+    /*
+     * `functionProperties` is a fresh array of fresh objects on every render, so it is projected to
+     * plain data here and the chart memoises on the *text*. Passing it straight through would defeat
+     * every memo downstream.
+     */
+    const functions = useMemo(
+        () =>
+            (functionProperties ?? []).map(f => ({
+                propertyName: f.propertyName,
+                functionArguments: f.functionArguments,
+                functionBody: f.functionBody
+            })),
+        [functionProperties]
+    );
 
-    const getStaticConfiguration = (): any => {
-        if (staticConfiguration && staticConfiguration !== "") {
-            const configuration = JSON.parse(staticConfiguration);
-
-            console.debug("Static Configuration", configuration);
-            return configuration;
-        }
-
-        return {};
-    };
-
-    const getFunctionPropertyConfiguration = (): any => {
-        if (functionProperties && functionProperties != null) {
-            const functionPropertyConfiguration: any = {};
-            functionProperties.forEach(prop => {
-                try {
-                    // eslint-disable-next-line no-new-func
-                    functionPropertyConfiguration[prop.propertyName] = new Function(
-                        prop.functionArguments,
-                        prop.functionBody
-                    );
-                } catch (e) {
-                    console.error(`Failed to parse function for property ${prop.propertyName}`);
-                }
-            });
-
-            console.debug("Function Property Configuration", functionPropertyConfiguration);
-            return functionPropertyConfiguration;
-        }
-
-        return {};
-    };
-
-    const getConfiguration = (): any => {
-        const configuration = {
-            ...getStaticConfiguration(),
-            ...getDynamicConfiguration(),
-            ...getFunctionPropertyConfiguration()
-        };
-        console.debug("Combined Configuration", configuration);
-        return configuration;
-    };
-
-    const isReady = dynamicConfiguration.status === "available" && chartData.status === "available";
+    if (loading) {
+        return (
+            <div
+                className={["aq-nivo", className].filter(Boolean).join(" ")}
+                style={{ height: heightMode === "fillParent" ? "100%" : undefined, ...style }}
+            >
+                <div
+                    className="aq-nivo__skeleton"
+                    style={heightMode === "pixels" ? { height: `${containerHeight}px` } : undefined}
+                    aria-busy="true"
+                    aria-live="polite"
+                />
+            </div>
+        );
+    }
 
     return (
-        <Fragment>
-            {isReady ? (
-                <NivoChartContainer
-                    chartType={chartType}
-                    data={getData()}
-                    configuration={getConfiguration()}
-                    containerHeight={containerHeight}
-                />
-            ) : (
-                <div className="widget-not-ready"></div>
-            )}
-        </Fragment>
+        <NivoChart
+            chartType={chartType}
+            dataJson={chartDataJson.value}
+            staticConfiguration={staticConfiguration}
+            dynamicConfiguration={dynamicConfiguration?.value}
+            functionProperties={functions}
+            heightMode={heightMode}
+            heightPixels={containerHeight}
+            /* `decimal` properties arrive as Big, not number. */
+            aspectRatio={aspectRatio ? Number(aspectRatio.toString()) : 1.6}
+            emptyMessage={textOf(emptyMessage) ?? DEFAULT_EMPTY_MESSAGE}
+            ariaLabel={textOf(ariaLabel)}
+            /*
+             * class, style and tabIndex are applied to the root element.
+             *
+             * 1.x declared all three and applied none of them, so every Atlas design property and
+             * every class set in Studio Pro was silently discarded — which from the app side looks
+             * like a CSS bug and sends you hunting through SCSS that is perfectly correct (C-03).
+             */
+            className={className}
+            style={style}
+            tabIndex={tabIndex}
+        />
     );
+}
+
+/**
+ * A `textTemplate` cannot declare a default in the widget XML, so its default lives in code. It also
+ * arrives as a DynamicValue that may not be available yet, in which case there is nothing to show.
+ */
+function textOf(value: { status: ValueStatus; value?: string } | undefined): string | undefined {
+    return value?.status === ValueStatus.Available ? value.value : undefined;
 }

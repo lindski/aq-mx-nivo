@@ -13,11 +13,20 @@ const base = require("@mendix/pluggable-widgets-tools/test-config/jest.config.js
  * cover the Mendix-free layer — safe JSON parsing, the static/dynamic/function configuration merge,
  * the datasource-to-Nivo-shape projection — none of which renders anything.
  *
- * `--passWithNoTests` is in the npm script rather than here, deliberately: that layer does not exist
- * yet. It arrives with the 2.0 rebuild (Phase 2), and the flag comes back out in the same commit as
- * the first test. Until then `npm test` reports honestly that it ran nothing.
+ * The `testMatch` override is not a preference — the inherited one cannot work from this checkout.
+ * It globs every `.spec` file under `<rootDir>`, and `<rootDir>` expands to a Windows path with mixed
+ * separators. This repository lives under a directory beginning with a dot, so the expansion
+ * contains `dev\.aq`, and in a glob a backslash is an *escape character*: micromatch reads `\.` as a
+ * literal dot rather than as a separator followed by a directory, and the pattern matches nothing.
+ * Jest then reports "No tests found" and helpfully lists the 14 files it checked — which reads as a
+ * discovery problem in your test files rather than in the path they sit under.
+ *
+ * `testRegex` has no such escaping, so it is used instead. Jest rejects having both, hence the
+ * explicit `testMatch: undefined`.
  */
 module.exports = {
     ...base,
+    testMatch: undefined,
+    testRegex: "\\.spec\\.(js|jsx|ts|tsx)$",
     snapshotSerializers: []
 };
