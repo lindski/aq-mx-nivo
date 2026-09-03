@@ -83,6 +83,22 @@ Deliberately *not* declared yet: the datasource properties, click actions, `rend
 theming flag. Adding a property later is safe; declaring one the widget reads nowhere is not, because
 it advertises configuration that does nothing.
 
+### Added — dynamic chart type
+
+- **`chartTypeExpression`** — an expression property returning a chart type key, so the chart type can
+  follow the data instead of being fixed when the page is built. `chartType` is an `enumeration`
+  property, which in Mendix means **design time only**: it arrives as a plain value, not an
+  `EditableValue`, so nothing could change it at runtime. That made a chart-type switcher — a
+  dashboard where the user picks a visualisation, or the gallery playground — impossible to build.
+- **An unrecognised value is an error, not a fallback.** Falling back silently would draw a chart of
+  the wrong type against data shaped for a different one, which tends to look plausible and be wrong,
+  and would hide the typo indefinitely. The message names the value received and suggests the nearest
+  key, because the realistic mistakes are a display label ("Scatter Plot") or a package name
+  ("sankey") rather than a random string.
+- `getCustomCaption()` appends "(dynamic)" when the expression is set, and `check()` warns that the
+  design-time `chartType` has become a fallback — the expression itself cannot be evaluated at design
+  time, so what it can do is stop the static setting being read as the one that applies.
+
 ### Fixed
 
 - **A malformed payload can no longer take down the page (C-01).** All parsing is now safe and

@@ -19,6 +19,12 @@ export type HeightMode = "pixels" | "aspectRatio" | "fillParent";
 
 export interface NivoChartProps {
     chartType: ChartType;
+    /**
+     * Set when the dynamic chart type expression produced a value this widget does not recognise.
+     * Passed in rather than resolved here, because resolution needs the Mendix value status and this
+     * component is deliberately Mendix-free.
+     */
+    chartTypeError?: string;
     /** Raw JSON text, not a parsed object. Parsing here is what makes the memoisation work. */
     dataJson?: string;
     staticConfiguration?: string;
@@ -37,6 +43,7 @@ export interface NivoChartProps {
 export function NivoChart(props: NivoChartProps): ReactElement {
     const {
         chartType,
+        chartTypeError,
         dataJson,
         staticConfiguration,
         dynamicConfiguration,
@@ -71,7 +78,7 @@ export function NivoChart(props: NivoChartProps): ReactElement {
         [props.heightMode, props.heightPixels, props.aspectRatio, style]
     );
 
-    const problems = [...(data.ok ? [] : [data.error]), ...merged.errors];
+    const problems = [...(chartTypeError ? [chartTypeError] : []), ...(data.ok ? [] : [data.error]), ...merged.errors];
 
     const body = (): ReactElement => {
         if (problems.length > 0) {

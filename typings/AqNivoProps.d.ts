@@ -56,6 +56,7 @@ export interface AqNivoContainerProps {
     tabIndex?: number;
     chartDataJson: EditableValue<string>;
     chartType: ChartTypeEnum;
+    chartTypeExpression?: DynamicValue<string>;
     staticConfiguration: string;
     dynamicConfiguration?: EditableValue<string>;
     functionProperties: FunctionPropertiesType[];
@@ -79,6 +80,7 @@ export interface AqNivoPreviewProps {
     translate: (text: string) => string;
     chartDataJson: string;
     chartType: ChartTypeEnum;
+    chartTypeExpression: string;
     staticConfiguration: string;
     dynamicConfiguration: string;
     functionProperties: FunctionPropertiesPreviewType[];

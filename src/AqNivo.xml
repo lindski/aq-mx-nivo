@@ -49,6 +49,11 @@
                     <enumerationValue key="ResponsiveWaffle">Waffle</enumerationValue>
                 </enumerationValues>
             </property>
+            <property key="chartTypeExpression" type="expression" required="false">
+                <caption>Chart type (dynamic)</caption>
+                <description>Optional. An expression returning one of the chart type keys above, so the chart type can follow the data instead of being fixed when the page is built — a dashboard where the user picks a visualisation, or a chart whose form depends on the record. When this is set and produces a recognised key it overrides Chart type; when it is empty the Chart type above is used. An unrecognised value is not silently ignored: the widget shows an error naming the value it was given, because a chart that quietly renders the wrong type is worse than one that says it cannot.</description>
+                <returnType type="String" />
+            </property>
         </propertyGroup>
         <propertyGroup caption="Configuration">
             <property key="staticConfiguration" type="string" multiline="true" required="false">

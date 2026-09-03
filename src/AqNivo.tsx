@@ -3,6 +3,7 @@ import { ValueStatus } from "mendix";
 
 import { AqNivoContainerProps } from "../typings/AqNivoProps";
 import { NivoChart } from "./components/NivoChart";
+import { resolveChartType } from "./charts/resolveChartType";
 import { ensureStyles } from "./ui/styles";
 
 /**
@@ -19,6 +20,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
     const {
         chartDataJson,
         chartType,
+        chartTypeExpression,
         staticConfiguration,
         dynamicConfiguration,
         functionProperties,
@@ -49,7 +51,15 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
      */
     const loading =
         chartDataJson.status === ValueStatus.Loading ||
-        (dynamicConfiguration !== undefined && dynamicConfiguration.status === ValueStatus.Loading);
+        (dynamicConfiguration !== undefined && dynamicConfiguration.status === ValueStatus.Loading) ||
+        (chartTypeExpression !== undefined && chartTypeExpression.status === ValueStatus.Loading);
+
+    /*
+     * The chart type can come from the design-time enumeration or from a runtime expression. Resolved
+     * here rather than in the chart component, because deciding whether the expression HAS a value is
+     * a Mendix question — an expression that has not resolved yet is not the same as one that is empty.
+     */
+    const resolved = resolveChartType(chartType, textOf(chartTypeExpression));
 
     /*
      * `functionProperties` is a fresh array of fresh objects on every render, so it is projected to
@@ -84,7 +94,8 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
 
     return (
         <NivoChart
-            chartType={chartType}
+            chartType={resolved.ok ? resolved.chartType : chartType}
+            chartTypeError={resolved.ok ? undefined : resolved.error}
             dataJson={chartDataJson.value}
             staticConfiguration={staticConfiguration}
             dynamicConfiguration={dynamicConfiguration?.value}

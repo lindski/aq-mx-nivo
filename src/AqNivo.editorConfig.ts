@@ -60,7 +60,10 @@ export function getProperties(_values: AqNivoPreviewProps, defaultProperties: Pr
  * that makes the tree useless for finding the one you want.
  */
 export function getCustomCaption(values: AqNivoPreviewProps): string {
-    return `Nivo ${CHART_LABELS[values.chartType as ChartType] ?? values.chartType}`;
+    const label = CHART_LABELS[values.chartType as ChartType] ?? values.chartType;
+    // Say so when the type is decided at runtime, or the tree confidently names a chart type the
+    // page may never render.
+    return values.chartTypeExpression?.trim() ? `Nivo ${label} (dynamic)` : `Nivo ${label}`;
 }
 
 export function check(values: AqNivoPreviewProps): Problem[] {
@@ -120,6 +123,20 @@ export function check(values: AqNivoPreviewProps): Problem[] {
             });
         }
     });
+
+    // --- dynamic chart type ------------------------------------------------------------------
+    //
+    // The expression cannot be evaluated at design time, so this cannot validate the VALUE. What it
+    // can do is stop the design-time setting being read as the one that applies.
+
+    if (values.chartTypeExpression?.trim()) {
+        problems.push({
+            property: "chartType",
+            severity: "warning",
+            message:
+                "Chart type (dynamic) is set, so this value is only a fallback for when the expression is empty. The expression cannot be checked here — an unrecognised key shows an error at runtime rather than silently drawing the wrong chart."
+        });
+    }
 
     // --- height ---------------------------------------------------------------------------------
     //
