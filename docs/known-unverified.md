@@ -276,29 +276,45 @@ Listed so nobody reports them as defects.
 
 ---
 
-## Datasource mode — built, and unverified in a running app
+## Datasource mode — VERIFIED in a running app, 2026-09-04
 
-Wired and green on lint, `check:layers`, 64 unit tests and the build. **None of it has drawn a chart
-from a Mendix list**, so everything below is a claim about code, not an observation:
+Measured against `NivoGallery.ChartSample_Datasource` over `NivoGallery.ChartRow`, MxAdmin,
+`localhost:8080`. **Zero console errors.** Both charts were measured from SVG geometry rather than
+eyeballed, because the failure this was built to catch renders as a perfectly plausible chart.
 
-- **`projectRows` is proven, the adapter around it is not.** The projection is pure and unit-tested
-  in isolation; what has never run is the Mendix half — `column.columnAttribute?.get(item)?.value`
-  over real `ObjectItem`s.
-  - **The `Big` trap was found and fixed before shipping, not left to the app.** Decimal, Integer and
-    Long all arrive as big.js instances, and big.js defines `toJSON` as `toString`, so an unconverted
-    value serialises to the JSON *string* `"3.5"`. Nivo would then build an ordinal scale where a
-    linear one was meant — even bar heights, labels for ticks, no error anywhere. `toPlainValue` in
-    `AqNivo.tsx` coerces it. Confirmed by running big.js directly; the unit tests could never have
-    caught it, because they feed plain numbers.
-- **A `DateTime` attribute arrives as a `Date`** and serialises to ISO 8601 through `Date`'s own
-  `toJSON` (confirmed). Whether the time scales (Calendar, TimeRange, a time-scaled Line) accept
-  *that* form is a separate question and is **not** confirmed — Calendar in particular wants
-  `YYYY-MM-DD`, and an ISO timestamp may need trimming.
+**Flat path — Bar, Long values, 4 rows.** Bar heights came out 224.727, 212.182, 248.182, 273.273 px
+against a 300 px plot and a 0–550 axis. Solving back: 412, 389, 455, 501 — the seeded values, exactly.
+The axis ticks are numeric (0, 50 … 550), which is the tell that matters: a **linear** scale was built,
+not the ordinal one a stringified `Big` would have produced.
+
+**Series path — Line, Decimal values, 8 rows split on Team.** Two `<path>`s, four points each, x at
+0 / 401.333 / 802.667 / 1204 — `SortOrder` preserved through the partition. Solving the y values back
+against the 0–24 axis gives 12.4, 11.8, 13.2, 14.6 (Motor) and 19.5, 21.1, 18.3, 22.7 (Property):
+**all eight decimals exact.** The two lines are cleanly separated, and the legend carries both series.
+
+So the whole datasource chain is confirmed end to end: `ListAttributeValue.get(item)`, `toPlainValue`'s
+`Big` coercion, `projectRows` for both shapes, the JSON round-trip, and `parseChartData`.
+
+**Method note — Nivo positions points by `transform` on a parent `<g>`, so a point's own `cx`/`cy` are
+`0`.** Reading them yields eight identical zeros, which looks like every point collapsing to one place.
+The line's `d` attribute is the real geometry. This is the same family of mistake as counting `<path>`
+elements to count Voronoi cells: **an SVG attribute is only evidence if you know Nivo actually writes
+the data into it.**
+
+### Still unverified in datasource mode
+
 - **`chartDataSource?.items` as a memo dependency is an identity check, not a value check.** It holds
   the last good rows through a reload by design (C-04 / Rule 6, no gate on `status`), but whether
   Mendix hands back a *new* array on every render — which would re-project and re-serialise every
-  time, defeating the text-keyed memo downstream — has not been measured.
-- **The `check()` mode rules have not been seen in Studio Pro.** A rebuilt `check()` does nothing
-  until the project is closed and reopened, so any test of them must start from a fresh open.
-- **No page uses it.** All 27 gallery instances are JSON mode, which is also why `json` had to stay
-  the enum default.
+  time, defeating the text-keyed memo downstream — has not been measured. Nothing observed suggests it
+  does; nothing rules it out either.
+- **DateTime has not been exercised.** A `DateTime` attribute serialises to ISO 8601 through `Date`'s
+  own `toJSON` (confirmed in isolation), but whether the time scales (Calendar, TimeRange, a
+  time-scaled Line) accept that form is untested — Calendar in particular wants `YYYY-MM-DD`, and an
+  ISO timestamp may need trimming. `ChartRow.Period` is deliberately a String, so this page does not
+  answer it.
+- **The `check()` mode rules have not been seen in Studio Pro.** The `AqNivo_CheckHarness` page does
+  not yet cover the five data-mode rules.
+- **Only 2 of the 18 supported chart types have been driven from a data source** — one flat, one
+  series. The projection is shape-driven rather than type-driven, so the other 16 follow from the two
+  paths, but that is an argument, not an observation.
