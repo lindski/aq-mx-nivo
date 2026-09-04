@@ -325,12 +325,19 @@ the data into it.**
 Measured against `NivoGallery.ChartSample_Datasource`, both charts calling
 `ACT_ChartRow_ShowDetail`. **Zero console errors.**
 
-| Action | Result |
-|---|---|
-| Bar, Q3 (real Playwright click) | *Clicked Motor Q3 — 455 claims, 13.2 days average.* |
-| Bar, **Q1** — the first row | initially **silent**; see the falsy-strip section below. Fixed and re-verified. |
-| Line, **Property** Q1 | *Clicked Property Q1 — 218 claims, 19.5 days average.* |
-| Bar, plot area above the bars | nothing, silently |
+**All twelve datums were clicked, not sampled** — four bars and eight line points across both
+series. Every one reported the right row, with the right values:
+
+| Chart | Clicked | Reported |
+|---|---|---|
+| Bar | Q1, Q2, Q3, Q4 | Motor Q1/412, Q2/389, Q3/455, Q4/501 — all correct |
+| Line, Property | Q1, Q2, Q3, Q4 | Property 218/19.5, 244/21.1, 197/18.3, 263/22.7 — all correct |
+| Line, Motor | Q1, Q2, Q3, Q4 | Motor 412/12.4, 389/11.8, 455/13.2, 501/14.6 — all correct |
+| Bar | plot area above the bars | nothing, silently |
+
+Exhaustive rather than sampled on purpose: the first pass clicked **one** bar of four, called
+interactivity verified, and shipped a defect in which the leftmost bar silently did nothing. Clicking
+all four costs seconds and is the only reason it was found.
 
 **The Line result is the one that mattered.** Property is the *second* serie, so it is exactly where
 per-serie rather than per-list numbering would go wrong — and it would go wrong plausibly: the answer
@@ -395,8 +402,11 @@ dynamic configuration can set `useMesh` at runtime, where design time cannot see
 
 ### Still unverified
 
-- **Only Bar and Line have been clicked.** The other sixteen datasource-supported types use payload
-  shapes taken from Nivo's type declarations, not observed. A shape that differs fails *silently*.
+- **Only Bar and Line have been clicked** — exhaustively, but only those two. The other sixteen
+  datasource-supported types use payload shapes taken from Nivo's type declarations, not observed. A
+  shape that differs fails *silently*. The falsy-strip bug also says something about the others:
+  `B()` is Bar's stacked path specifically, so **each chart family may mangle the datum its own way**,
+  and reading the type declarations would not have predicted it.
 - **The series-level ceiling is asserted, not measured.** Stream, Bump and Area Bump are warned about
   as reporting clicks per series; no click has been attempted on any of the three.
 - **`ROW_KEY` in the datum is untested on charts that derive series from datum keys** — Radar,
