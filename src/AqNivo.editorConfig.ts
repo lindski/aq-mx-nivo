@@ -10,6 +10,7 @@ import {
 } from "./charts/chartTypes";
 import { parseConfiguration } from "./data/parseJson";
 import { functionPropertyError } from "./config/functionProps";
+import { collectFunctionMarkers, resolveMarker } from "./config/functionRegistry";
 
 /**
  * Design time.
@@ -87,6 +88,22 @@ export function check(values: AqNivoPreviewProps): Problem[] {
     const staticResult = parseConfiguration(values.staticConfiguration, "Static configuration");
     if (!staticResult.ok) {
         problems.push({ property: "staticConfiguration", severity: "error", message: staticResult.error });
+    }
+
+    // --- named function markers -----------------------------------------------------------------
+    //
+    // Only the STATIC configuration can be checked here: the dynamic one is an attribute whose value
+    // does not exist until the app runs. That asymmetry is worth stating rather than leaving someone
+    // to wonder why their marker was not flagged — a typo in the dynamic configuration is a runtime
+    // error, and can only ever be.
+
+    if (staticResult.ok) {
+        for (const marker of collectFunctionMarkers(staticResult.value)) {
+            const resolved = resolveMarker(marker);
+            if (typeof resolved !== "function") {
+                problems.push({ property: "staticConfiguration", severity: "error", message: resolved.error });
+            }
+        }
     }
 
     // --- function properties -------------------------------------------------------------------

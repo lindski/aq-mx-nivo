@@ -1,5 +1,6 @@
 import { parseConfiguration } from "../data/parseJson";
 import { compileFunctionProperties, FunctionPropertyDefinition } from "./functionProps";
+import { resolveFunctionMarkers } from "./functionRegistry";
 
 /**
  * The static -> dynamic -> function configuration merge.
@@ -46,10 +47,29 @@ export function mergeConfiguration(input: MergeInput): MergedConfiguration {
     const functions = compileFunctionProperties(input.functionProperties);
     warnings.push(...functions.errors);
 
+    /*
+     * Named function markers are resolved AFTER the JSON layers are merged and BEFORE function
+     * properties are applied.
+     *
+     * After the merge, because a marker set in the static configuration must be overridable by the
+     * dynamic one — resolving each layer separately would turn a plain string into a function before
+     * the layer above had a chance to replace it, and a function cannot be compared or overwritten
+     * as cleanly as the string it came from.
+     *
+     * Before function properties, because those are the escape hatch and must keep winning: a
+     * hand-written body should override a named function on the same key, not the other way round.
+     */
+    const merged = {
+        ...(staticResult.ok ? staticResult.value : {}),
+        ...(dynamicResult.ok ? dynamicResult.value : {})
+    };
+
+    const resolved = resolveFunctionMarkers(merged);
+    errors.push(...resolved.errors);
+
     return {
         configuration: {
-            ...(staticResult.ok ? staticResult.value : {}),
-            ...(dynamicResult.ok ? dynamicResult.value : {}),
+            ...resolved.configuration,
             ...functions.values
         },
         warnings,
