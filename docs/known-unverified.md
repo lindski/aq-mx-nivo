@@ -6,7 +6,58 @@ be built, linted, unit-tested and packaged outside Mendix; almost none of it can
 Keep this file honest. A claim moves out of here when something was observed, not when it seems
 likely.
 
-Status as of **2026-09-04**, after the renderer split and the two check() defect fixes.
+Status as of **2026-09-04**, after the renderer split, the two check() defect fixes, and the first runtime smoke test of the gallery.
+
+---
+
+## Added 2026-09-04 (later) — what the first runtime smoke test settled, and what it did not
+
+**23 of 26 charts render correctly** in the running app, with real axes, legends, series and applied
+configuration. That is the first evidence that the 26 payloads derived from the 0.99 typings are
+sound. Two defects were found and fixed; both need re-checking in the app.
+
+### RE-CHECK 1 — Geo Map should now render instead of showing the empty state
+
+`NivoChart` gated on empty BOUND data before rendering, so Geo Map — which has no meaningful `data`
+prop and takes its geography through `features` in the configuration — was unrenderable **even when
+fully configured**. The gate now skips any chart type whose `CHART_DATA_SHAPE` is `"features"`.
+
+**Expect:** the Geo Map page renders an SVG shell rather than "No sample data for this chart type."
+It will still look blank, because no GeoJSON is supplied — that part is unchanged and correct, and
+the design-time warning says so. **Supplying a small feature collection is the only way to prove Geo
+Map and Choropleth actually draw**; the world-countries file is ~250 KB and is deliberately not
+shipped. A three-country GeoJSON in the sample would close this properly.
+
+### RE-CHECK 2 — Network should now draw, via function properties
+
+Network produced 53 NaN coordinates and ~138 console errors. **The data was never wrong** — every
+node carried `size`, every link carried `distance`. The configuration used the **string accessor**
+form (`"nodeSize": "size"`), which @nivo 0.99 no longer supports:
+
+```ts
+export type DerivedProp<Target, Output> = Output | ((target: Target) => Output);
+linkDistance: DerivedProp<Link, number>;   // number | (link => number)
+nodeSize:     DerivedProp<Node, number>;   // number | (node => number)
+```
+
+**This is the first empirically confirmed 0.80 to 0.99 breaking prop change (R-03).** It was
+invisible to every gate: the payload was derived from the typings, and the typings still admit a
+`string` — as the OUTPUT type, not as an accessor. Assume other string-accessor props elsewhere in
+Nivo went the same way, and treat any configuration value that names a field as suspect.
+
+The sample now supplies both as **function properties** on the widget instance (`node.size`,
+`link.distance`) rather than in the JSON, which also makes it the only sample demonstrating that
+feature.
+
+**Expect:** a force-directed graph with seven variably-sized nodes and eight links, and **zero**
+console errors on that page. Zero NaN is the assertion; the console count is the quick check.
+
+### Still unrendered
+
+- **No Canvas or HTML chart has been drawn in a browser.** No gallery page uses one; `nivoR14` in
+  the check harness is the only exercise either has had, and that is design-time only.
+- **Voronoi draws only 4 paths**, which is sparse for a tessellation. Not investigated — it may be
+  correct for the payload, or the payload may be thin.
 
 ---
 

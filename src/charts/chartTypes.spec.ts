@@ -1,4 +1,11 @@
-import { CHART_RENDERER_SUPPORT, CHART_TYPES, RENDERER_MODES, isRendererMode, supportsRenderer } from "./chartTypes";
+import {
+    CHART_DATA_SHAPE,
+    CHART_RENDERER_SUPPORT,
+    CHART_TYPES,
+    RENDERER_MODES,
+    isRendererMode,
+    supportsRenderer
+} from "./chartTypes";
 
 /*
  * `CHART_RENDERER_SUPPORT` is a table read out of the installed @nivo type declarations by hand. A
@@ -42,6 +49,18 @@ describe("renderer support", () => {
 
         expect(withCanvas).toHaveLength(14);
         expect(withHtml).toEqual(["CirclePacking", "TreeMap", "Waffle"]);
+    });
+
+    /*
+     * `NivoChart` skips the empty-bound-data gate for any chart type whose data shape is "features",
+     * because such a chart takes no bound data at all and gating on it made the chart unrenderable
+     * even when fully configured. That gate's correctness depends entirely on this table, so pin it:
+     * if a future Nivo adds another features-only chart type, the gate should cover it and this test
+     * is what says so out loud.
+     */
+    it("marks exactly the features-only chart types, which the empty-data gate depends on", () => {
+        const featuresOnly = CHART_TYPES.filter(t => CHART_DATA_SHAPE[t] === "features");
+        expect(featuresOnly).toEqual(["GeoMap"]);
     });
 
     it("recognises exactly the three renderer modes", () => {

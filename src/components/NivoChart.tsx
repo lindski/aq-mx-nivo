@@ -1,7 +1,7 @@
 import { CSSProperties, Fragment, ReactElement, useMemo } from "react";
 
 import { renderChart } from "../charts/registry";
-import { ChartType, RendererMode } from "../charts/chartTypes";
+import { CHART_DATA_SHAPE, ChartType, RendererMode } from "../charts/chartTypes";
 import { isEmptyData, parseChartData } from "../data/parseJson";
 import { mergeCacheKey, mergeConfiguration } from "../config/merge";
 import { FunctionPropertyDefinition } from "../config/functionProps";
@@ -93,7 +93,20 @@ export function NivoChart(props: NivoChartProps): ReactElement {
         if (problems.length > 0) {
             return state("error", "This chart could not be drawn.", problems.join(" "));
         }
-        if (isEmptyData(data.ok ? data.value : undefined)) {
+        /*
+         * The empty state is about BOUND data, so it must not apply to a chart type that does not
+         * take any.
+         *
+         * Geo Map has no meaningful `data` prop at all — its geography arrives through `features` in
+         * the configuration. Gating on empty bound data therefore made Geo Map unrenderable *even
+         * when `features` was supplied*, which is a strictly worse failure than the one the empty
+         * state exists to prevent: the chart was fully configured and the widget refused to draw it,
+         * reporting "no sample data" about a property the chart never reads.
+         *
+         * Found by rendering the gallery, not by any check — the page looked exactly like a
+         * correctly-empty chart. See docs/known-unverified.md.
+         */
+        if (CHART_DATA_SHAPE[chartType] !== "features" && isEmptyData(data.ok ? data.value : undefined)) {
             return state("empty", emptyMessage);
         }
         return (
