@@ -204,6 +204,55 @@ export function check(values: AqNivoPreviewProps): Problem[] {
             });
         }
 
+        /*
+         * Line's click surface is the voronoi mesh, not its points.
+         *
+         * Verified against @nivo/line 0.99: `useMesh` defaults to FALSE, the Points layer renders
+         * `DotsItem`s carrying only onFocus/onBlur, and the mesh layer is rendered only when
+         * `isInteractive && useMesh && enableSlices === false`. So a Line with a click action and no
+         * mesh is silently non-interactive — the chart draws, the property is set, and clicking a
+         * point does nothing whatsoever. That is precisely the failure this widget's design-time
+         * checks exist for, and nothing at runtime could report it: "no click arrived" and "no click
+         * handler was ever attached" are indistinguishable from inside the widget.
+         *
+         * Warning rather than error because the dynamic configuration can set `useMesh` at runtime,
+         * where check() cannot see it.
+         */
+        if (values.chartType === "Line" && staticResult.ok) {
+            const configuration = staticResult.value;
+            const slices = configuration.enableSlices;
+
+            if (slices !== undefined && slices !== false) {
+                problems.push({
+                    property: "onClickAction",
+                    severity: "warning",
+                    message:
+                        "enableSlices is set, so Line reports clicks against a slice — several points at once — " +
+                        "and there is no single row to pass, so On click will not fire. Remove enableSlices and " +
+                        'set "useMesh": true to get per-point clicks.'
+                });
+            } else if (configuration.useMesh !== true) {
+                problems.push({
+                    property: "onClickAction",
+                    severity: "warning",
+                    message:
+                        "Line only reports clicks through its mesh, and useMesh defaults to false, so On click " +
+                        'will never fire. Add "useMesh": true to Static configuration. The chart will look ' +
+                        "completely normal either way — the points simply have no click handler."
+                });
+            } else {
+                problems.push({
+                    property: "onClickAction",
+                    severity: "warning",
+                    message:
+                        "useMesh is on, so the whole plot area is clickable: a click on apparently empty space " +
+                        "drills into whichever point is nearest, because a voronoi cell always has an owner. " +
+                        "Confirmed in the running app. That is usually wanted on a sparse line chart and " +
+                        "surprising on a dense one."
+                });
+            }
+        }
+
         // Not a hard error: a chart type chosen at runtime may well be a clickable one. But silence
         // here would mean the pairing is only discovered by clicking and getting nothing.
         if (values.chartTypeExpression) {

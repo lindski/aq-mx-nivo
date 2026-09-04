@@ -320,38 +320,57 @@ the data into it.**
   paths, but that is an argument, not an observation.
 ---
 
-## Interactivity — built, page wiring not yet done
+## Interactivity — VERIFIED in a running app, 2026-09-04
 
-The widget half is complete and green (77 tests, layers, lint, build). **Nothing has been clicked**,
-because the page cannot be wired until Studio Pro re-reads the widget XML.
+Measured against `NivoGallery.ChartSample_Datasource`, both charts calling
+`ACT_ChartRow_ShowDetail`. **Zero console errors.**
 
-**How a click finds its row, and why it is done this way.** Nivo hands `onClick` a *datum*, not the
-Mendix row behind it. Object identity cannot bridge the two here: the projection is serialised to JSON
-and re-parsed — the round-trip that makes the downstream memoisation work — so the objects the chart
-holds are copies, and a `WeakMap` keyed on the row would never match. The handle therefore travels
-*inside* the datum, under `ROW_KEY` (`__mxRow`), as the row's index into the list the projection was
-given; the adapter maps it back to `items[index]`. Carried only when a click action is actually
-configured, because an extra key in a datum is not free.
+| Action | Result |
+|---|---|
+| Bar, Q3 (real Playwright click) | *Clicked Motor Q3 — 455 claims, 13.2 days average.* |
+| Line, **Property** Q1 | *Clicked Property Q1 — 218 claims, 19.5 days average.* |
+| Bar, plot area above the bars | nothing, silently |
 
-**`resolveRowKey` probes rather than switches on chart type.** Nivo has no single click contract — a
-Bar's datum wraps the original on `data`, a Funnel part spreads it onto the payload, a Line point
-nests it a level deeper. Eighteen per-type extractors would need keeping in step with Nivo's internals
-across every release, and a shape that moved would fail *silently*: a click that resolves nothing looks
-exactly like a click on empty space. The probe list does not care what the wrapper is called.
+**The Line result is the one that mattered.** Property is the *second* serie, so it is exactly where
+per-serie rather than per-list numbering would go wrong — and it would go wrong plausibly: the answer
+would have been *Motor Q1*, a real row with believable numbers. It resolved to the right row, so
+`ROW_KEY` carries a position in the original list as intended.
 
-### What is genuinely unverified
+**How a click finds its row.** Nivo hands `onClick` a *datum*, not the Mendix row. Object identity
+cannot bridge them here: the projection is serialised to JSON and re-parsed — the round-trip that makes
+the downstream memoisation work — so the chart holds copies. The handle therefore travels inside the
+datum under `ROW_KEY` (`__mxRow`), as the row's index into the list the projection was given, carried
+only when a click action is configured. `resolveRowKey` probes a short ordered list of places it can
+sit rather than switching on chart type, because Nivo has no single click contract.
 
-- **No click has been fired in a browser.** Every payload shape in `clickTarget.spec.ts` is written
-  from the Nivo type declarations, not observed. If a real Bar payload nests its datum differently
-  from the test's, the probe list is wrong and **the symptom is silence** — the exact failure the
-  probe design was chosen to avoid, which is not the same as being immune to it. **Verify Bar and Line
-  first**, and treat the other sixteen as unconfirmed until seen.
-- **`ROW_KEY` in the datum is not free, and the cost is untested.** A chart that derives its series
-  from the datum's own keys would treat `__mxRow` as data. Bar takes `keys` explicitly and Line reads
-  only `x`/`y`, so neither is at risk — but Radar, Marimekko and Waffle have not been tried with a
-  click action set.
-- **The series-level ceiling is asserted, not measured.** Stream, Bump and Area Bump are documented
-  and warned about as reporting clicks per series rather than per datum. That comes from reading Nivo's
-  types; no click has been attempted on any of the three.
+### Line's click surface is the mesh, not its points — and the default is off
+
+Found while testing, then confirmed against `@nivo/line` 0.99 source rather than inferred:
+
+- **`useMesh` defaults to `false`**, and the Points layer renders `DotsItem`s carrying only
+  `onFocus`/`onBlur` — **no `onClick`**. The mesh layer is rendered only when
+  `isInteractive && useMesh && enableSlices === false`. So **a Line with a click action and no mesh is
+  silently non-interactive**: the chart draws, the property is set, clicking a point does nothing, and
+  nothing at runtime could report it — "no click arrived" and "no handler was ever attached" are
+  indistinguishable from inside the widget.
+- **With `useMesh` on there is no empty space.** A click anywhere in the plot drills into the nearest
+  point, because a voronoi cell always has an owner. Verified: a click in the far bottom-right corner
+  reported *Motor Q4*. Usually wanted on a sparse chart, surprising on a dense one.
+- **`enableSlices` gives slice-level clicks** — several points at once, so no single row, so nothing
+  fires.
+
+All three are now `check()` warnings against `onClickAction`. Warnings rather than errors because the
+dynamic configuration can set `useMesh` at runtime, where design time cannot see it.
+
+### Still unverified
+
+- **Only Bar and Line have been clicked.** The other sixteen datasource-supported types use payload
+  shapes taken from Nivo's type declarations, not observed. A shape that differs fails *silently*.
+- **The series-level ceiling is asserted, not measured.** Stream, Bump and Area Bump are warned about
+  as reporting clicks per series; no click has been attempted on any of the three.
+- **`ROW_KEY` in the datum is untested on charts that derive series from datum keys** — Radar,
+  Marimekko and Waffle. Bar takes `keys` explicitly and Line reads only `x`/`y`, so neither is at risk.
 - **`canExecute` / `isExecuting` gating is untested under a slow microflow.** The intent is that a
-  second click during execution is dropped rather than queued.
+  second click during execution is dropped rather than queued; `ACT_ChartRow_ShowDetail` returns too
+  fast to exercise it.
+- **The datasource `items` memo identity question** (see the datasource section above) is unchanged.
