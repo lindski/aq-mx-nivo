@@ -171,10 +171,23 @@ errors because the payload boundary in `src/charts/registry.tsx` is `any` — de
 Nivo components have mutually incompatible prop types — so a renamed or removed prop surfaces only at
 runtime.
 
-The old samples are live in the test app as `NivoTestDataOld`. Render each and record what breaks.
-Where a sample and the Nivo 0.99 documentation disagree, the documentation wins: there is no existing
-consumer to migrate. Known structural change to look at first: **theming moved out of `@nivo/core`
-into `@nivo/theming`**.
+**The plan to render the old samples side by side is DEAD, confirmed 2026-09-04.** The 1.x widget
+does not run on Mendix 11 at all: every `NivoTestDataOld.ChartTest_*` page fails to open with
+*“ReferenceError: require is not defined”*, because `auraq.AqNivo` is a Dojo-era AMD widget and
+`require` does not exist in the React client. Confirmed across Bar, Pie, Sankey and Calendar. Those
+pages have been dead since the 11.12.4 upgrade, so the comparison was never available — three plan
+revisions rescheduled it without anyone testing whether it could be done.
+
+**It has been answered empirically instead, and better.** Rendering the 26 NEW samples in the running
+app found the one prop change that mattered: Nivo 0.99 removed the string-accessor form for
+`nodeSize` / `linkDistance` (see the CONFIRMED section above). A concrete failure with a concrete
+fix, which reading old payloads by eye would not have produced.
+
+**What remains genuinely unchecked** is the rest of the 0.80 to 0.99 surface — nineteen minor lines
+of prop churn across 26 chart types, of which we have sampled 26 payloads and found one break. Treat
+any configuration value that names a FIELD as the prime suspect, since that is the form 0.99
+removed. Known structural change still to look at: **theming moved out of `@nivo/core` into
+`@nivo/theming`**.
 
 ### 5. Is the `zip-a-folder` pin still needed?
 
