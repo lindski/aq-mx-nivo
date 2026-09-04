@@ -8,32 +8,34 @@ import { Big } from "big.js";
 import { CSSProperties } from "react";
 
 export type ChartTypeEnum =
-    | "ResponsiveAreaBump"
-    | "ResponsiveBar"
-    | "ResponsiveBullet"
-    | "ResponsiveBump"
-    | "ResponsiveCalendar"
-    | "ResponsiveChord"
-    | "ResponsiveChoropleth"
-    | "ResponsiveCirclePacking"
-    | "ResponsiveFunnel"
-    | "ResponsiveGeoMap"
-    | "ResponsiveHeatMap"
-    | "ResponsiveLine"
-    | "ResponsiveMarimekko"
-    | "ResponsiveNetwork"
-    | "ResponsivePie"
-    | "ResponsiveRadar"
-    | "ResponsiveRadialBar"
-    | "ResponsiveSankey"
-    | "ResponsiveScatterPlot"
-    | "ResponsiveStream"
-    | "ResponsiveSunburst"
-    | "ResponsiveSwarmPlot"
-    | "ResponsiveTimeRange"
-    | "ResponsiveTreeMap"
-    | "ResponsiveVoronoi"
-    | "ResponsiveWaffle";
+    | "AreaBump"
+    | "Bar"
+    | "Bullet"
+    | "Bump"
+    | "Calendar"
+    | "Chord"
+    | "Choropleth"
+    | "CirclePacking"
+    | "Funnel"
+    | "GeoMap"
+    | "HeatMap"
+    | "Line"
+    | "Marimekko"
+    | "Network"
+    | "Pie"
+    | "Radar"
+    | "RadialBar"
+    | "Sankey"
+    | "ScatterPlot"
+    | "Stream"
+    | "Sunburst"
+    | "SwarmPlot"
+    | "TimeRange"
+    | "TreeMap"
+    | "Voronoi"
+    | "Waffle";
+
+export type RendererEnum = "Svg" | "Canvas" | "Html";
 
 export interface FunctionPropertiesType {
     propertyName: string;
@@ -57,6 +59,7 @@ export interface AqNivoContainerProps {
     chartDataJson: EditableValue<string>;
     chartType: ChartTypeEnum;
     chartTypeExpression?: DynamicValue<string>;
+    renderer: RendererEnum;
     staticConfiguration: string;
     dynamicConfiguration?: EditableValue<string>;
     functionProperties: FunctionPropertiesType[];
@@ -81,6 +84,7 @@ export interface AqNivoPreviewProps {
     chartDataJson: string;
     chartType: ChartTypeEnum;
     chartTypeExpression: string;
+    renderer: RendererEnum;
     staticConfiguration: string;
     dynamicConfiguration: string;
     functionProperties: FunctionPropertiesPreviewType[];

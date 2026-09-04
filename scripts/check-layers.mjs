@@ -238,22 +238,67 @@ if (existsSync(packageJsonPath) && existsSync(packageXmlPath)) {
 const chartTypesPath = join(srcDir, "charts", "chartTypes.ts");
 
 if (existsSync(widgetXmlPath) && existsSync(chartTypesPath)) {
-    const xmlKeys = [...readFileSync(widgetXmlPath, "utf8").matchAll(/<enumerationValue\s+key="([^"]*)"/g)]
-        .map(m => m[1])
-        .filter(k => k.startsWith("Responsive"));
-
+    const xml = readFileSync(widgetXmlPath, "utf8");
     const source = readFileSync(chartTypesPath, "utf8");
-    const block = /export const CHART_TYPES = \[([\s\S]*?)\] as const;/.exec(source)?.[1] ?? "";
-    const tsKeys = [...block.matchAll(/"([^"]+)"/g)].map(m => m[1]);
 
-    const missingInTs = xmlKeys.filter(k => !tsKeys.includes(k));
-    const missingInXml = tsKeys.filter(k => !xmlKeys.includes(k));
+    /**
+     * Pull the enumeration keys of ONE property, by name.
+     *
+     * This used to filter every <enumerationValue> in the file by a "Responsive" prefix, which worked
+     * only because the chart type keys were the Nivo component names. At 2.0 they became base names
+     * and the file grew a second enumeration, so the prefix heuristic would have silently matched
+     * nothing — and a guard that passes because it found no keys is worse than no guard at all.
+     * Scope it to the property instead, and report an empty result as a violation rather than a pass.
+     *
+     * Deliberately indexOf/slice rather than a constructed regex: this file's whole premise is being
+     * dumb and textual, and a `new RegExp` built from a template literal is exactly the kind of
+     * escaping that breaks silently and takes the guard with it.
+     */
+    const xmlEnumKeys = propertyKey => {
+        const opening = '<property key="' + propertyKey + '"';
+        const from = xml.indexOf(opening);
+        if (from < 0) {
+            return [];
+        }
+        const to = xml.indexOf("</property>", from);
+        const block = to < 0 ? xml.slice(from) : xml.slice(from, to);
+        return [...block.matchAll(/<enumerationValue\s+key="([^"]*)"/g)].map(m => m[1]);
+    };
 
-    for (const key of missingInTs) {
-        report("src/charts/chartTypes.ts", 1, `CHART_TYPES`, `is missing "${key}", which AqNivo.xml declares`);
-    }
-    for (const key of missingInXml) {
-        report("src/AqNivo.xml", 1, `<enumerationValue>`, `is missing "${key}", which CHART_TYPES declares`);
+    const tsArrayEntries = name => {
+        const opening = "export const " + name + " = [";
+        const from = source.indexOf(opening);
+        if (from < 0) {
+            return [];
+        }
+        const to = source.indexOf("] as const;", from);
+        const block = to < 0 ? "" : source.slice(from + opening.length, to);
+        return [...block.matchAll(/"([^"]+)"/g)].map(m => m[1]);
+    };
+
+    /** Both vocabularies are declared twice, so assert both rather than trusting either. */
+    const VOCABULARIES = [
+        { property: "chartType", constant: "CHART_TYPES" },
+        { property: "renderer", constant: "RENDERER_MODES" }
+    ];
+
+    for (const { property, constant } of VOCABULARIES) {
+        const xmlKeys = xmlEnumKeys(property);
+        const tsKeys = tsArrayEntries(constant);
+
+        if (xmlKeys.length === 0) {
+            report("src/AqNivo.xml", 1, `<property key="${property}">`, "declares no enumeration values — a guard that finds nothing is not a passing guard");
+        }
+        if (tsKeys.length === 0) {
+            report("src/charts/chartTypes.ts", 1, constant, "declares no entries — a guard that finds nothing is not a passing guard");
+        }
+
+        for (const key of xmlKeys.filter(k => !tsKeys.includes(k))) {
+            report("src/charts/chartTypes.ts", 1, constant, `is missing "${key}", which AqNivo.xml declares for ${property}`);
+        }
+        for (const key of tsKeys.filter(k => !xmlKeys.includes(k))) {
+            report("src/AqNivo.xml", 1, `<property key="${property}">`, `is missing "${key}", which ${constant} declares`);
+        }
     }
 }
 

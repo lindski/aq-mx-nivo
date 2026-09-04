@@ -21,6 +21,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
         chartDataJson,
         chartType,
         chartTypeExpression,
+        renderer,
         staticConfiguration,
         dynamicConfiguration,
         functionProperties,
@@ -95,6 +96,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
     return (
         <NivoChart
             chartType={resolved.ok ? resolved.chartType : chartType}
+            renderer={renderer}
             chartTypeError={resolved.ok ? undefined : resolved.error}
             dataJson={chartDataJson.value}
             staticConfiguration={staticConfiguration}

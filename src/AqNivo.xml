@@ -17,42 +17,51 @@
             </property>
         </propertyGroup>
         <propertyGroup caption="Chart">
-            <property key="chartType" type="enumeration" defaultValue="ResponsiveBar">
+            <property key="chartType" type="enumeration" defaultValue="Bar">
                 <caption>Chart type</caption>
-                <description>Which Nivo chart to render. Each chart type expects its own data shape and accepts its own configuration properties, so changing this usually means changing the bound data as well.</description>
+                <description>Which Nivo chart to render. Each chart type expects its own data shape and accepts its own configuration properties, so changing this usually means changing the bound data as well. This names the chart's form only; how it is drawn is the Renderer property below. Before 2.0 these keys carried a Responsive prefix and folded in the drawing technology; an expression written against 1.x needs updating.</description>
                 <enumerationValues>
-                    <enumerationValue key="ResponsiveAreaBump">Area Bump</enumerationValue>
-                    <enumerationValue key="ResponsiveBar">Bar</enumerationValue>
-                    <enumerationValue key="ResponsiveBullet">Bullet</enumerationValue>
-                    <enumerationValue key="ResponsiveBump">Bump</enumerationValue>
-                    <enumerationValue key="ResponsiveCalendar">Calendar</enumerationValue>
-                    <enumerationValue key="ResponsiveChord">Chord</enumerationValue>
-                    <enumerationValue key="ResponsiveChoropleth">Choropleth</enumerationValue>
-                    <enumerationValue key="ResponsiveCirclePacking">Circle Packing</enumerationValue>
-                    <enumerationValue key="ResponsiveFunnel">Funnel</enumerationValue>
-                    <enumerationValue key="ResponsiveGeoMap">Geo Map</enumerationValue>
-                    <enumerationValue key="ResponsiveHeatMap">Heat Map</enumerationValue>
-                    <enumerationValue key="ResponsiveLine">Line</enumerationValue>
-                    <enumerationValue key="ResponsiveMarimekko">Marimekko</enumerationValue>
-                    <enumerationValue key="ResponsiveNetwork">Network</enumerationValue>
-                    <enumerationValue key="ResponsivePie">Pie</enumerationValue>
-                    <enumerationValue key="ResponsiveRadar">Radar</enumerationValue>
-                    <enumerationValue key="ResponsiveRadialBar">Radial Bar</enumerationValue>
-                    <enumerationValue key="ResponsiveSankey">Sankey</enumerationValue>
-                    <enumerationValue key="ResponsiveScatterPlot">Scatter Plot</enumerationValue>
-                    <enumerationValue key="ResponsiveStream">Stream</enumerationValue>
-                    <enumerationValue key="ResponsiveSunburst">Sunburst</enumerationValue>
-                    <enumerationValue key="ResponsiveSwarmPlot">Swarm Plot</enumerationValue>
-                    <enumerationValue key="ResponsiveTimeRange">Time Range</enumerationValue>
-                    <enumerationValue key="ResponsiveTreeMap">Tree Map</enumerationValue>
-                    <enumerationValue key="ResponsiveVoronoi">Voronoi</enumerationValue>
-                    <enumerationValue key="ResponsiveWaffle">Waffle</enumerationValue>
+                    <enumerationValue key="AreaBump">Area Bump</enumerationValue>
+                    <enumerationValue key="Bar">Bar</enumerationValue>
+                    <enumerationValue key="Bullet">Bullet</enumerationValue>
+                    <enumerationValue key="Bump">Bump</enumerationValue>
+                    <enumerationValue key="Calendar">Calendar</enumerationValue>
+                    <enumerationValue key="Chord">Chord</enumerationValue>
+                    <enumerationValue key="Choropleth">Choropleth</enumerationValue>
+                    <enumerationValue key="CirclePacking">Circle Packing</enumerationValue>
+                    <enumerationValue key="Funnel">Funnel</enumerationValue>
+                    <enumerationValue key="GeoMap">Geo Map</enumerationValue>
+                    <enumerationValue key="HeatMap">Heat Map</enumerationValue>
+                    <enumerationValue key="Line">Line</enumerationValue>
+                    <enumerationValue key="Marimekko">Marimekko</enumerationValue>
+                    <enumerationValue key="Network">Network</enumerationValue>
+                    <enumerationValue key="Pie">Pie</enumerationValue>
+                    <enumerationValue key="Radar">Radar</enumerationValue>
+                    <enumerationValue key="RadialBar">Radial Bar</enumerationValue>
+                    <enumerationValue key="Sankey">Sankey</enumerationValue>
+                    <enumerationValue key="ScatterPlot">Scatter Plot</enumerationValue>
+                    <enumerationValue key="Stream">Stream</enumerationValue>
+                    <enumerationValue key="Sunburst">Sunburst</enumerationValue>
+                    <enumerationValue key="SwarmPlot">Swarm Plot</enumerationValue>
+                    <enumerationValue key="TimeRange">Time Range</enumerationValue>
+                    <enumerationValue key="TreeMap">Tree Map</enumerationValue>
+                    <enumerationValue key="Voronoi">Voronoi</enumerationValue>
+                    <enumerationValue key="Waffle">Waffle</enumerationValue>
                 </enumerationValues>
             </property>
             <property key="chartTypeExpression" type="expression" required="false">
                 <caption>Chart type (dynamic)</caption>
-                <description>Optional. An expression returning one of the chart type keys above, so the chart type can follow the data instead of being fixed when the page is built — a dashboard where the user picks a visualisation, or a chart whose form depends on the record. When this is set and produces a recognised key it overrides Chart type; when it is empty the Chart type above is used. An unrecognised value is not silently ignored: the widget shows an error naming the value it was given, because a chart that quietly renders the wrong type is worse than one that says it cannot.</description>
+                <description>Optional. An expression returning one of the chart type keys above, so the chart type can follow the data instead of being fixed when the page is built — a dashboard where the user picks a visualisation, or a chart whose form depends on the record. Where the key comes from a Mendix enumeration, getKey($currentObject/YourAttribute) returns it directly. When this is set and produces a recognised key it overrides Chart type; when it is empty the Chart type above is used. An unrecognised value is not silently ignored: the widget shows an error naming the value it was given, because a chart that quietly renders the wrong type is worse than one that says it cannot.</description>
                 <returnType type="String" />
+            </property>
+            <property key="renderer" type="enumeration" defaultValue="Svg">
+                <caption>Renderer</caption>
+                <description>How the chart is drawn. SVG is the default and every chart type supports it. Canvas draws to a bitmap instead and is worth choosing where the element count is high enough that SVG becomes slow — large scatter plots, dense heat maps, long calendars. HTML exists for three hierarchical charts and lets their labels use ordinary text layout. Not every chart type has every renderer: fourteen have Canvas and three have HTML. Choosing one a chart type does not have is not an error — the chart is drawn as SVG instead, since the same chart is shown either way — but it is reported as a warning at design time so the choice is not silently doing nothing.</description>
+                <enumerationValues>
+                    <enumerationValue key="Svg">SVG</enumerationValue>
+                    <enumerationValue key="Canvas">Canvas</enumerationValue>
+                    <enumerationValue key="Html">HTML</enumerationValue>
+                </enumerationValues>
             </property>
         </propertyGroup>
         <propertyGroup caption="Configuration">
@@ -72,7 +81,7 @@
                 <description>Nivo configuration properties whose value must be a function rather than a value — tooltips, value formatters, colour accessors. JSON cannot express a function, so these are written as a body here and compiled in the browser. Merged last, so a function property wins over the same key in either JSON configuration. Use sparingly: the bodies are not type-checked, they run with whatever Nivo passes them, and compiling them needs 'unsafe-eval' in the page's Content-Security-Policy.</description>
                 <properties>
                     <propertyGroup caption="Function property">
-                        <property key="propertyName" type="string" required="true">
+                        <property key="propertyName" type="string" required="false">
                             <caption>Property name</caption>
                             <description>The Nivo configuration property this function is assigned to, e.g. tooltip, valueFormat, colors. Spelling is not validated — a name Nivo does not recognise is silently ignored by the chart.</description>
                         </property>
@@ -80,7 +89,7 @@
                             <caption>Arguments</caption>
                             <description>Comma-separated argument names for the function, matching what Nivo passes for this property — often a single argument such as datum or value. Leave empty for a function that takes none.</description>
                         </property>
-                        <property key="functionBody" type="string" multiline="true" required="true">
+                        <property key="functionBody" type="string" multiline="true" required="false">
                             <caption>Body</caption>
                             <description>The function body, without the surrounding function declaration or braces. It must return a value: a body that falls off the end returns undefined, which Nivo usually renders as an empty tooltip or a missing label rather than an error. Syntax is checked at design time.</description>
                         </property>

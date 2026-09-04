@@ -6,7 +6,54 @@ be built, linted, unit-tested and packaged outside Mendix; almost none of it can
 Keep this file honest. A claim moves out of here when something was observed, not when it seems
 likely.
 
-Status as of **2026-09-03**, after the 2.0 property surface and correctness work.
+Status as of **2026-09-04**, after the renderer split and the two check() defect fixes.
+
+---
+
+## Added 2026-09-04 — the renderer split and two check() fixes
+
+### 0. The 27 placed instances must be migrated before anything else works
+
+`chartType`’s enumeration **values changed**: `ResponsiveBar` became `Bar`, and the drawing
+technology moved to a new `renderer` property. Every placed instance in the test app — 26 gallery
+detail pages and the playground — holds a value that no longer exists in the enumeration.
+
+**Expected:** Studio Pro reports a consistency error naming the invalid value on each page. **This is
+an expectation, not an observation.** The published guidance covers removing a *property* (which
+corrupts instances and surfaces as a modeler crash) and renaming a property *key* (which loses the
+binding); it says nothing about changing an enumeration’s *values*, and nobody has watched this
+happen. Confirm what Studio Pro actually does before assuming the migration is safe to script.
+
+Order matters: **close and reopen the project first** so the new property definitions load, and only
+then repoint the pages. Repointing them against the cached old definition would write values the
+currently-loaded widget rejects.
+
+### 0b. Does the Canvas / HTML renderer actually draw?
+
+`CHART_RENDERER_SUPPORT` was read out of the installed `@nivo` 0.99.0 declarations and is unit-tested
+for shape and counts, but **no Canvas or HTML chart has been rendered in a browser**. The registry
+maps 14 Canvas and 3 HTML variants; a wrong import would have failed the build, a wrong *runtime*
+prop contract would not.
+
+- Draw one Canvas chart (Bar or ScatterPlot) and one HTML chart (TreeMap) and confirm they render.
+- Confirm the SVG fallback: set Renderer to Canvas on a Funnel and check a chart still appears.
+
+### 0c. Does dropping `required="true"` remove the duplicate errors?
+
+`propertyName` and `functionBody` were `required="true"`, so an empty one produced Mendix’s generic
+*“Property ‘Body’ is required.”* **as well as** the widget’s own explanatory `check()` message — two
+errors for one mistake, observed on the harness page. Both are now `required="false"`.
+
+**Confirm on `NivoGallery.AqNivo_CheckHarness`: the harness should report 6 errors, not 8.** If it
+still reports 8, the `.mpk` did not reload. Enforcement is unchanged either way — a `check()` error
+is a consistency error and still blocks F5.
+
+### 0d. The compile-failure message in Studio Pro specifically
+
+`did not compile: null` is fixed, and against Node the message now reads *“did not compile — check
+the body for a syntax error: Unexpected token ‘;’”*. **Node is not where the defect appeared.** The
+null came from Studio Pro’s design-time host, so the only place the fix can be confirmed is there.
+Expect the trailing detail to be absent in Studio Pro and the sentence to still be useful without it.
 
 ---
 

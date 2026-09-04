@@ -1,5 +1,13 @@
 import { AqNivoPreviewProps } from "../typings/AqNivoProps";
-import { CHART_DATA_SHAPE, CHART_LABELS, ChartType } from "./charts/chartTypes";
+import {
+    CHART_DATA_SHAPE,
+    CHART_LABELS,
+    CHART_RENDERER_SUPPORT,
+    ChartType,
+    RendererMode,
+    isChartType,
+    supportsRenderer
+} from "./charts/chartTypes";
 import { parseConfiguration } from "./data/parseJson";
 import { functionPropertyError } from "./config/functionProps";
 
@@ -136,6 +144,38 @@ export function check(values: AqNivoPreviewProps): Problem[] {
             message:
                 "Chart type (dynamic) is set, so this value is only a fallback for when the expression is empty. The expression cannot be checked here — an unrecognised key shows an error at runtime rather than silently drawing the wrong chart."
         });
+    }
+
+    // --- renderer -------------------------------------------------------------------------------
+    //
+    // Choosing a renderer this chart type does not have is not fatal: `renderChart` falls back to SVG,
+    // and the same chart is drawn either way, so nothing is misrepresented. That is deliberately the
+    // opposite judgement to an unrecognised chart *type*, which is an error — a wrong chart type shows
+    // plausible-looking wrong data, a wrong rasterisation shows the right data drawn differently.
+    //
+    // But a property that silently does nothing invites someone to set it and wonder why the chart did
+    // not change, so it is worth a warning. Reported against `renderer` rather than `chartType`,
+    // because the renderer is the value being ignored and a problem raised against the field you just
+    // filled in is the one that gets read.
+
+    if (isChartType(values.chartType) && values.renderer !== "Svg") {
+        const chartType = values.chartType as ChartType;
+        const renderer = values.renderer as RendererMode;
+        const label = (mode: string): string => (mode === "Html" ? "HTML" : mode === "Svg" ? "SVG" : mode);
+
+        if (!supportsRenderer(chartType, renderer)) {
+            const alternatives = CHART_RENDERER_SUPPORT[chartType].filter(mode => mode !== "Svg").map(label);
+
+            problems.push({
+                property: "renderer",
+                severity: "warning",
+                message:
+                    `${CHART_LABELS[chartType]} has no ${label(renderer)} renderer, so this chart is drawn as SVG. ` +
+                    (alternatives.length > 0
+                        ? `This chart type supports SVG and ${alternatives.join(" and ")}.`
+                        : "This chart type is SVG only.")
+            });
+        }
     }
 
     // --- height ---------------------------------------------------------------------------------

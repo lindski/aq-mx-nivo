@@ -1,7 +1,7 @@
 import { CSSProperties, Fragment, ReactElement, useMemo } from "react";
 
 import { renderChart } from "../charts/registry";
-import { ChartType } from "../charts/chartTypes";
+import { ChartType, RendererMode } from "../charts/chartTypes";
 import { isEmptyData, parseChartData } from "../data/parseJson";
 import { mergeCacheKey, mergeConfiguration } from "../config/merge";
 import { FunctionPropertyDefinition } from "../config/functionProps";
@@ -19,6 +19,14 @@ export type HeightMode = "pixels" | "aspectRatio" | "fillParent";
 
 export interface NivoChartProps {
     chartType: ChartType;
+    /**
+     * How the chart is drawn. Unlike the chart type this has no runtime counterpart: it is a
+     * performance decision about a known dataset, not something that should follow the data.
+     *
+     * A renderer the chart type does not have falls back to SVG inside `renderChart` — see
+     * `registry.tsx` for why that fallback is right here and wrong for the chart type.
+     */
+    renderer: RendererMode;
     /**
      * Set when the dynamic chart type expression produced a value this widget does not recognise.
      * Passed in rather than resolved here, because resolution needs the Mendix value status and this
@@ -43,6 +51,7 @@ export interface NivoChartProps {
 export function NivoChart(props: NivoChartProps): ReactElement {
     const {
         chartType,
+        renderer,
         chartTypeError,
         dataJson,
         staticConfiguration,
@@ -89,11 +98,11 @@ export function NivoChart(props: NivoChartProps): ReactElement {
         }
         return (
             <ChartErrorBoundary
-                resetKey={`${chartType}|${dataJson ?? ""}|${configurationKey}`}
+                resetKey={`${chartType}|${renderer}|${dataJson ?? ""}|${configurationKey}`}
                 fallback={message => state("error", "This chart could not be drawn.", message)}
             >
                 <div className="aq-nivo__chart">
-                    {renderChart(chartType, data.ok ? data.value : undefined, merged.configuration)}
+                    {renderChart(chartType, renderer, data.ok ? data.value : undefined, merged.configuration)}
                 </div>
             </ChartErrorBoundary>
         );
