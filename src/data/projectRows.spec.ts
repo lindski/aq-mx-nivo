@@ -1,5 +1,5 @@
 import { CHART_DATASOURCE_SHAPE, CHART_TYPES } from "../charts/chartTypes";
-import { projectRows, RowMapping } from "./projectRows";
+import { projectRows, ROW_KEY, RowMapping } from "./projectRows";
 
 const ok = (result: ReturnType<typeof projectRows>): unknown => {
     if (!result.ok) {
@@ -170,5 +170,76 @@ describe("what it refuses, and how clearly", () => {
         }
         expect(CHART_TYPES.filter(t => CHART_DATASOURCE_SHAPE[t] === "flat")).toHaveLength(12);
         expect(CHART_TYPES.filter(t => CHART_DATASOURCE_SHAPE[t] === "series")).toHaveLength(6);
+    });
+});
+
+describe("the row handle a click is traced back with", () => {
+    it("is absent unless asked for, so non-interactive charts pay nothing", () => {
+        const value = ok(
+            projectRows({ chartType: "Pie", rows: [{ Status: "Settled" }], mappings: mapped("Status") })
+        ) as Array<Record<string, unknown>>;
+        expect(value[0]).toEqual({ Status: "Settled" });
+        expect(ROW_KEY in value[0]).toBe(false);
+    });
+
+    it("carries the row's index on a flat chart", () => {
+        const value = ok(
+            projectRows({
+                chartType: "Pie",
+                rows: [{ Status: "Settled" }, { Status: "Notified" }],
+                mappings: mapped("Status"),
+                includeRowKey: true
+            })
+        );
+        expect(value).toEqual([
+            { Status: "Settled", [ROW_KEY]: 0 },
+            { Status: "Notified", [ROW_KEY]: 1 }
+        ]);
+    });
+
+    /*
+     * The one that would be easy to get wrong: a point's handle must be its position in the ORIGINAL
+     * row list, not its position within its own serie. Numbering per serie would make every second
+     * serie resolve to the wrong Mendix object — and it would look right, because the indices would
+     * still be plausible small integers.
+     */
+    it("numbers points by their position in the original list, not within their serie", () => {
+        const value = ok(
+            projectRows({
+                chartType: "Line",
+                rows: [
+                    { Team: "Motor", Month: "Jan", Days: 12 },
+                    { Team: "Property", Month: "Jan", Days: 19 },
+                    { Team: "Motor", Month: "Feb", Days: 14 }
+                ],
+                mappings: [
+                    { source: "Month", outputKey: "x" },
+                    { source: "Days", outputKey: "y" }
+                ],
+                seriesSource: "Team",
+                includeRowKey: true
+            })
+        );
+
+        expect(value).toEqual([
+            {
+                id: "Motor",
+                data: [
+                    { x: "Jan", y: 12, [ROW_KEY]: 0 },
+                    { x: "Feb", y: 14, [ROW_KEY]: 2 }
+                ]
+            },
+            { id: "Property", data: [{ x: "Jan", y: 19, [ROW_KEY]: 1 }] }
+        ]);
+    });
+
+    it("refuses a mapping that would write over the reserved key", () => {
+        const result = projectRows({
+            chartType: "Pie",
+            rows: [{ A: 1 }],
+            mappings: [{ source: "A", outputKey: ROW_KEY }]
+        });
+        expect(result.ok).toBe(false);
+        expect(result.ok === false && result.error).toContain("is reserved");
     });
 });

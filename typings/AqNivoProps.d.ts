@@ -3,7 +3,7 @@
  * WARNING: All changes made to this file will be overwritten
  * @author Mendix Widgets Framework Team
  */
-import { DynamicValue, EditableValue, ListAttributeValue, ListValue } from "mendix";
+import { DynamicValue, EditableValue, ListActionValue, ListAttributeValue, ListValue } from "mendix";
 import { Big } from "big.js";
 import { CSSProperties } from "react";
 
@@ -73,6 +73,7 @@ export interface AqNivoContainerProps {
     chartDataSource?: ListValue;
     dataColumns: DataColumnsType[];
     seriesAttribute?: ListAttributeValue<string | boolean | Date | Big>;
+    onClickAction?: ListActionValue;
     chartType: ChartTypeEnum;
     chartTypeExpression?: DynamicValue<string>;
     renderer: RendererEnum;
@@ -102,6 +103,7 @@ export interface AqNivoPreviewProps {
     chartDataSource: {} | { caption: string } | { type: string } | null;
     dataColumns: DataColumnsPreviewType[];
     seriesAttribute: string;
+    onClickAction: {} | null;
     chartType: ChartTypeEnum;
     chartTypeExpression: string;
     renderer: RendererEnum;

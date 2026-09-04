@@ -6,6 +6,7 @@ import { AqNivoContainerProps } from "../typings/AqNivoProps";
 import { NivoChart } from "./components/NivoChart";
 import { resolveChartType } from "./charts/resolveChartType";
 import { projectRows, RowMapping } from "./data/projectRows";
+import { resolveRowKey } from "./charts/clickTarget";
 import { ensureStyles } from "./ui/styles";
 
 /**
@@ -51,6 +52,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
         chartDataSource,
         dataColumns,
         seriesAttribute,
+        onClickAction,
         chartType,
         chartTypeExpression,
         renderer,
@@ -127,6 +129,8 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
     // conditional expression it has to give up on.
     const effectiveChartType = resolved.ok ? resolved.chartType : chartType;
 
+    const interactive = dataMode === "datasource" && !!onClickAction;
+
     const projected = useMemo(() => {
         if (dataMode !== "datasource") {
             return undefined;
@@ -158,11 +162,51 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
             chartType: effectiveChartType,
             rows,
             mappings,
-            seriesSource: seriesAttribute ? "__series" : undefined
+            seriesSource: seriesAttribute ? "__series" : undefined,
+            includeRowKey: interactive
         });
 
         return result.ok ? { json: JSON.stringify(result.value) } : { error: result.error };
-    }, [dataMode, chartDataSource?.items, dataColumns, seriesAttribute, effectiveChartType]);
+    }, [dataMode, chartDataSource?.items, dataColumns, seriesAttribute, effectiveChartType, interactive]);
+
+    /*
+     * Click -> row -> microflow.
+     *
+     * `onClickAction` is a ListActionValue because the XML declares its `dataSource`, which is what
+     * makes Mendix bind the clicked row to the microflow's parameter. Without that declaration the
+     * property still compiles, the action still fires, and the microflow silently receives nothing —
+     * no error at build, design or run time. It is the single easiest thing to get wrong here.
+     *
+     * Undefined rather than a no-op when there is nothing to do: NivoChart only puts `onClick` into
+     * the configuration when this is set, so a non-interactive chart does not advertise itself as
+     * clickable.
+     */
+    const onDatumClick = useMemo(() => {
+        const items = chartDataSource?.items;
+        if (!interactive || !onClickAction || !items) {
+            return undefined;
+        }
+
+        return (payload: unknown): void => {
+            const index = resolveRowKey(payload);
+            if (index === undefined) {
+                // A series- or layer-level click (Stream, Bump, Area Bump), or a chart whose payload
+                // shape we do not recognise. Firing with no row would be worse than not firing.
+                return;
+            }
+
+            const item = items[index];
+            if (!item) {
+                // The rows moved under us between render and click — a refresh landing mid-gesture.
+                return;
+            }
+
+            const action = onClickAction.get(item);
+            if (action?.canExecute && !action.isExecuting) {
+                action.execute();
+            }
+        };
+    }, [interactive, onClickAction, chartDataSource?.items]);
 
     if (loading) {
         return (
@@ -187,6 +231,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
             chartTypeError={resolved.ok ? undefined : resolved.error}
             dataJson={dataMode === "datasource" ? projected?.json : chartDataJson?.value}
             dataError={dataMode === "datasource" ? projected?.error : undefined}
+            onDatumClick={onDatumClick}
             staticConfiguration={staticConfiguration}
             dynamicConfiguration={dynamicConfiguration?.value}
             functionProperties={functions}

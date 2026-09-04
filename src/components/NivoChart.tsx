@@ -41,6 +41,16 @@ export interface NivoChartProps {
      * projection needs the Mendix ListValue and this component is deliberately Mendix-free.
      */
     dataError?: string;
+    /**
+     * Called with the raw Nivo click payload when a datum is clicked.
+     *
+     * Raw and untyped on purpose: this component is Mendix-free, so it has no business knowing what a
+     * click *does*. It forwards; the adapter resolves the payload to a row and fires the action.
+     * Leaving it unset is what makes the chart non-interactive — `onClick` is then never put into the
+     * configuration at all, rather than being set to a no-op, so Nivo's own hover and cursor
+     * affordances stay off and the chart does not look clickable when it is not.
+     */
+    onDatumClick?: (payload: unknown) => void;
     staticConfiguration?: string;
     dynamicConfiguration?: string;
     functionProperties?: readonly FunctionPropertyDefinition[];
@@ -61,6 +71,7 @@ export function NivoChart(props: NivoChartProps): ReactElement {
         chartTypeError,
         dataJson,
         dataError,
+        onDatumClick,
         staticConfiguration,
         dynamicConfiguration,
         functionProperties,
@@ -92,6 +103,20 @@ export function NivoChart(props: NivoChartProps): ReactElement {
     const containerStyle = useMemo(
         () => ({ ...sizing(props.heightMode, props.heightPixels, props.aspectRatio), ...style }),
         [props.heightMode, props.heightPixels, props.aspectRatio, style]
+    );
+
+    /*
+     * Injected AFTER the merge, deliberately, so it cannot be overwritten by a configuration key.
+     *
+     * The alternative — merging it in with everything else — would let a static configuration
+     * containing its own "onClick" silently win, and since that value would be a JSON string rather
+     * than a function, the chart would either ignore it or throw somewhere inside Nivo. A click
+     * handler that is configured and does nothing is exactly the class of silent failure this widget
+     * keeps running into, so it is placed where nothing can reach it.
+     */
+    const configuration = useMemo(
+        () => (onDatumClick ? { ...merged.configuration, onClick: onDatumClick } : merged.configuration),
+        [merged.configuration, onDatumClick]
     );
 
     const problems = [
@@ -134,7 +159,7 @@ export function NivoChart(props: NivoChartProps): ReactElement {
                      * the truth is that the data is fine and the code has not arrived yet.
                      */}
                     <Suspense fallback={state("loading", "Loading chart…")}>
-                        {renderChart(chartType, renderer, data.ok ? data.value : undefined, merged.configuration)}
+                        {renderChart(chartType, renderer, data.ok ? data.value : undefined, configuration)}
                     </Suspense>
                 </div>
             </ChartErrorBoundary>

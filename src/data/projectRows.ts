@@ -29,6 +29,23 @@ import { ParseResult } from "./parseJson";
  * stay JSON-only. See `CHART_DATASOURCE_SHAPE`.
  */
 
+/**
+ * The key a row's position is carried under, inside the chart datum.
+ *
+ * A click handler is given a Nivo *datum*, not the Mendix row it came from, so something has to
+ * bridge the two. Object identity cannot: the projection is serialised to JSON and re-parsed (that
+ * round-trip is what makes the downstream memoisation work — see `AqNivo.tsx`), so the objects the
+ * chart holds are copies, and a WeakMap keyed on the row would never match.
+ *
+ * So the handle travels *inside* the datum, as the row's index into the list the projection was given.
+ * The adapter maps it straight back to `items[index]`, because it builds its rows one-for-one from
+ * `items`.
+ *
+ * Double-underscored and Mendix-prefixed to stay out of the way of a modeller's own output keys, and
+ * `projectRows` refuses a mapping that would write it anyway.
+ */
+export const ROW_KEY = "__mxRow";
+
 /** One mapped column: which row field to read, and what to call it in the chart datum. */
 export interface RowMapping {
     /** The key the value is read from on the projected row. */
@@ -46,10 +63,19 @@ export interface ProjectionInput {
      * `{ id, data: [...] }`, with the remaining mapped fields forming each point.
      */
     seriesSource?: string;
+    /**
+     * Carry each row's index into its datum under {@link ROW_KEY}, so a click can be traced back to
+     * the Mendix object it came from.
+     *
+     * Off by default, and set only when a click action is actually configured. An extra key in the
+     * datum is not free — a chart that derives its series from the datum's own keys would treat it as
+     * data — so it is not worth paying for on the charts that never need it.
+     */
+    includeRowKey?: boolean;
 }
 
 export function projectRows(input: ProjectionInput): ParseResult<unknown> {
-    const { chartType, rows, mappings, seriesSource } = input;
+    const { chartType, rows, mappings, seriesSource, includeRowKey } = input;
     const shape = CHART_DATASOURCE_SHAPE[chartType];
     const label = CHART_LABELS[chartType];
 
@@ -75,6 +101,16 @@ export function projectRows(input: ProjectionInput): ParseResult<unknown> {
         outputKey: mapping.outputKey?.trim() ? mapping.outputKey.trim() : mapping.source
     }));
 
+    const reserved = keyed.find(m => m.outputKey === ROW_KEY);
+    if (reserved) {
+        return {
+            ok: false,
+            error:
+                `"${ROW_KEY}" is reserved: it is how a click is traced back to the row it fired on. ` +
+                `Give that column a different output key.`
+        };
+    }
+
     const duplicate = firstDuplicate(keyed.map(m => m.outputKey));
     if (duplicate) {
         return {
@@ -85,10 +121,13 @@ export function projectRows(input: ProjectionInput): ParseResult<unknown> {
         };
     }
 
-    const project = (row: Record<string, unknown>): Record<string, unknown> => {
+    const project = (row: Record<string, unknown>, index: number): Record<string, unknown> => {
         const datum: Record<string, unknown> = {};
         for (const mapping of keyed) {
             datum[mapping.outputKey] = row[mapping.source];
+        }
+        if (includeRowKey) {
+            datum[ROW_KEY] = index;
         }
         return datum;
     };
@@ -115,16 +154,18 @@ export function projectRows(input: ProjectionInput): ParseResult<unknown> {
      */
     const series = new Map<string, Array<Record<string, unknown>>>();
 
-    for (const row of rows) {
+    rows.forEach((row, index) => {
         const rawId = row[seriesSource];
         const id = rawId === null || rawId === undefined ? "" : String(rawId);
         const points = series.get(id);
+        // The index is the row's position in the ORIGINAL list, not in its serie — a point in the
+        // third serie still has to find its own row.
         if (points) {
-            points.push(project(row));
+            points.push(project(row, index));
         } else {
-            series.set(id, [project(row)]);
+            series.set(id, [project(row, index)]);
         }
-    }
+    });
 
     return { ok: true, value: [...series].map(([id, data]) => ({ id, data })) };
 }

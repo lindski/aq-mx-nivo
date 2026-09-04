@@ -65,6 +65,12 @@
                 </attributeTypes>
             </property>
         </propertyGroup>
+        <propertyGroup caption="Events">
+            <property key="onClickAction" type="action" dataSource="chartDataSource" required="false">
+                <caption>On click</caption>
+                <description>Runs when a datum is clicked, receiving the row it was drawn from — so a chart becomes a way into the data rather than a picture of it. Requires Data from to be Data source: in JSON string mode there is no row to pass, and a click that arrives with nothing is worse than no click at all. Note what the microflow gets: the Mendix object behind the datum, not the datum. A click on a stacked bar segment or a line point identifies one row, and that row is what arrives. Two ceilings worth knowing before you design around this. Charts whose click is about a whole series rather than one row — Stream, Bump and Area Bump — cannot identify a single row, so nothing fires there. And leaving this empty is meaningful rather than merely unset: the chart is then rendered with no click handler at all, so it does not take on the pointer cursor and hover affordances that would tell a user it can be clicked.</description>
+            </property>
+        </propertyGroup>
         <propertyGroup caption="Chart">
             <property key="chartType" type="enumeration" defaultValue="Bar">
                 <caption>Chart type</caption>

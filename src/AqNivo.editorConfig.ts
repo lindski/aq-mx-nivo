@@ -36,6 +36,15 @@ import { collectFunctionMarkers, resolveMarker } from "./config/functionRegistry
  * as a success. The mode checks below say the same thing and cannot do that.
  */
 
+/**
+ * Chart types whose `onClick` reports a series or a layer rather than a single datum.
+ *
+ * Kept here rather than in `chartTypes.ts` because it is a fact about Nivo's *event* surface, not
+ * about the chart's data shape, and the two do not line up: Stream and Bump both take ordinary row
+ * data and project perfectly well — it is only the click that cannot narrow to one row.
+ */
+const SERIES_LEVEL_CLICK: readonly ChartType[] = ["Stream", "Bump", "AreaBump"];
+
 type Properties = PropertyGroup[];
 
 type PropertyGroup = {
@@ -162,6 +171,48 @@ export function check(values: AqNivoPreviewProps): Problem[] {
                 message:
                     `${CHART_LABELS[values.chartType as ChartType]} is a single-series chart, so Series is ignored ` +
                     `here. It applies to Line, Scatter Plot, Heat Map, Radial Bar, Bump and Area Bump.`
+            });
+        }
+    }
+
+    // --- click action ---------------------------------------------------------------------------
+    //
+    // Every rule here is about a silent failure. A click action is invisible in the property sheet
+    // once set — nothing shows whether it can actually reach a row — so design time is the only place
+    // these can be caught at all.
+
+    if (values.onClickAction) {
+        if (values.dataMode !== "datasource") {
+            problems.push({
+                property: "onClickAction",
+                severity: "error",
+                message:
+                    "On click needs Data from to be Data source. In JSON string mode there is no Mendix row " +
+                    "behind a datum, so the microflow would be called with nothing — and it would look like it " +
+                    "was working."
+            });
+        }
+
+        if (isChartType(values.chartType) && SERIES_LEVEL_CLICK.includes(values.chartType as ChartType)) {
+            problems.push({
+                property: "onClickAction",
+                severity: "warning",
+                message:
+                    `${CHART_LABELS[values.chartType as ChartType]} reports clicks against a whole series rather ` +
+                    `than one point, so there is no single row to pass and On click will never fire. Use a chart ` +
+                    `whose click identifies one datum, or drive the drill-down from a control beside the chart.`
+            });
+        }
+
+        // Not a hard error: a chart type chosen at runtime may well be a clickable one. But silence
+        // here would mean the pairing is only discovered by clicking and getting nothing.
+        if (values.chartTypeExpression) {
+            problems.push({
+                property: "onClickAction",
+                severity: "warning",
+                message:
+                    "Chart type is set by an expression, so whether a click can identify a row depends on which " +
+                    "type it produces. Stream, Bump and Area Bump report clicks per series and will not fire."
             });
         }
     }

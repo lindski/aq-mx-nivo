@@ -318,3 +318,40 @@ the data into it.**
 - **Only 2 of the 18 supported chart types have been driven from a data source** — one flat, one
   series. The projection is shape-driven rather than type-driven, so the other 16 follow from the two
   paths, but that is an argument, not an observation.
+---
+
+## Interactivity — built, page wiring not yet done
+
+The widget half is complete and green (77 tests, layers, lint, build). **Nothing has been clicked**,
+because the page cannot be wired until Studio Pro re-reads the widget XML.
+
+**How a click finds its row, and why it is done this way.** Nivo hands `onClick` a *datum*, not the
+Mendix row behind it. Object identity cannot bridge the two here: the projection is serialised to JSON
+and re-parsed — the round-trip that makes the downstream memoisation work — so the objects the chart
+holds are copies, and a `WeakMap` keyed on the row would never match. The handle therefore travels
+*inside* the datum, under `ROW_KEY` (`__mxRow`), as the row's index into the list the projection was
+given; the adapter maps it back to `items[index]`. Carried only when a click action is actually
+configured, because an extra key in a datum is not free.
+
+**`resolveRowKey` probes rather than switches on chart type.** Nivo has no single click contract — a
+Bar's datum wraps the original on `data`, a Funnel part spreads it onto the payload, a Line point
+nests it a level deeper. Eighteen per-type extractors would need keeping in step with Nivo's internals
+across every release, and a shape that moved would fail *silently*: a click that resolves nothing looks
+exactly like a click on empty space. The probe list does not care what the wrapper is called.
+
+### What is genuinely unverified
+
+- **No click has been fired in a browser.** Every payload shape in `clickTarget.spec.ts` is written
+  from the Nivo type declarations, not observed. If a real Bar payload nests its datum differently
+  from the test's, the probe list is wrong and **the symptom is silence** — the exact failure the
+  probe design was chosen to avoid, which is not the same as being immune to it. **Verify Bar and Line
+  first**, and treat the other sixteen as unconfirmed until seen.
+- **`ROW_KEY` in the datum is not free, and the cost is untested.** A chart that derives its series
+  from the datum's own keys would treat `__mxRow` as data. Bar takes `keys` explicitly and Line reads
+  only `x`/`y`, so neither is at risk — but Radar, Marimekko and Waffle have not been tried with a
+  click action set.
+- **The series-level ceiling is asserted, not measured.** Stream, Bump and Area Bump are documented
+  and warned about as reporting clicks per series rather than per datum. That comes from reading Nivo's
+  types; no click has been attempted on any of the three.
+- **`canExecute` / `isExecuting` gating is untested under a slow microflow.** The intent is that a
+  second click during execution is dropped rather than queued.
