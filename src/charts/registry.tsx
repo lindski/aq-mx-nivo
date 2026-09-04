@@ -1,50 +1,24 @@
-import { ReactElement } from "react";
-import { ResponsiveAreaBump, ResponsiveBump } from "@nivo/bump";
-import { ResponsiveBar, ResponsiveBarCanvas } from "@nivo/bar";
-import { ResponsiveBullet } from "@nivo/bullet";
-import { ResponsiveCalendar, ResponsiveCalendarCanvas, ResponsiveTimeRange } from "@nivo/calendar";
-import { ResponsiveChord, ResponsiveChordCanvas } from "@nivo/chord";
-import {
-    ResponsiveCirclePacking,
-    ResponsiveCirclePackingCanvas,
-    ResponsiveCirclePackingHtml
-} from "@nivo/circle-packing";
-import { ResponsiveChoropleth, ResponsiveChoroplethCanvas, ResponsiveGeoMap, ResponsiveGeoMapCanvas } from "@nivo/geo";
-import { ResponsiveFunnel } from "@nivo/funnel";
-import { ResponsiveHeatMap, ResponsiveHeatMapCanvas } from "@nivo/heatmap";
-import { ResponsiveLine, ResponsiveLineCanvas } from "@nivo/line";
-import { ResponsiveMarimekko } from "@nivo/marimekko";
-import { ResponsiveNetwork, ResponsiveNetworkCanvas } from "@nivo/network";
-import { ResponsivePie, ResponsivePieCanvas } from "@nivo/pie";
-import { ResponsiveRadar } from "@nivo/radar";
-import { ResponsiveRadialBar } from "@nivo/radial-bar";
-import { ResponsiveSankey } from "@nivo/sankey";
-import { ResponsiveScatterPlot, ResponsiveScatterPlotCanvas } from "@nivo/scatterplot";
-import { ResponsiveStream } from "@nivo/stream";
-import { ResponsiveSunburst } from "@nivo/sunburst";
-import { ResponsiveSwarmPlot, ResponsiveSwarmPlotCanvas } from "@nivo/swarmplot";
-import { ResponsiveTreeMap, ResponsiveTreeMapCanvas, ResponsiveTreeMapHtml } from "@nivo/treemap";
-import { ResponsiveVoronoi } from "@nivo/voronoi";
-import { ResponsiveWaffle, ResponsiveWaffleCanvas, ResponsiveWaffleHtml } from "@nivo/waffle";
+import { ComponentType, LazyExoticComponent, ReactElement, createElement, lazy } from "react";
 
-import { ChartType, RendererMode, supportsRenderer } from "./chartTypes";
+import { CHART_DATA_SHAPE, ChartType, RendererMode, supportsRenderer } from "./chartTypes";
 
 /**
- * (Chart type, rendering technology) -> the function that draws it.
+ * (Chart type, rendering technology) -> a loader for the Nivo component that draws it.
  *
- * The important detail is that these are **functions**, not elements. 1.x built an object literal
- * containing all 26 chart elements and then selected one from it, so every render constructed 26
- * React elements to throw 25 away (C-06). Here only the selected chart is ever constructed.
+ * ## Why these are loaders and not imports (B-01)
  *
- * This does NOT yet fix B-01. Every `@nivo` package is still statically imported above, so all of
- * them are still in the bundle. Making these lazy — `() => import("@nivo/bar")` behind a registry of
- * promises — is the code-splitting work, and it is a change to this file alone: the rest of the
- * widget already goes through `renderChart`. That is why the indirection is here now.
+ * A page draws ONE chart. Until 2.0 this file imported all 24 `@nivo` packages statically, so every
+ * page carrying any chart paid for all of them — a 4.7 MB bundle to render a bar chart. The loaders
+ * below are dynamic imports, so Rollup emits one chunk per package and the browser fetches only the
+ * one the page actually needs.
  *
- * **This file is the only place that should know the word "Responsive".** Everywhere else a chart is
- * a base type plus a rendering technology; the Nivo component name is assembled here and nowhere
- * else. That is what made the 2.0 split cheap, and keeping it that way is what makes the next Nivo
- * naming change cheap.
+ * This is the case the code-splitting pattern is for, and the test it sets: split what most pages do
+ * not need, never what the widget always loads. Twenty-five of the twenty-six are never needed on any
+ * given page.
+ *
+ * **This file is still the only place that should know the word "Responsive".** Everywhere else a
+ * chart is a base type plus a rendering technology; the Nivo component name is assembled here and
+ * nowhere else.
  *
  * `any` is unavoidable at this boundary and is confined to it. The Nivo components have mutually
  * incompatible prop types, and the whole premise of this widget is one configuration payload spread
@@ -52,90 +26,106 @@ import { ChartType, RendererMode, supportsRenderer } from "./chartTypes";
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type RenderFn = (data: any, configuration: Record<string, unknown>) => ReactElement;
+type ChartComponent = ComponentType<any>;
+type Loader = () => Promise<ChartComponent>;
 
-/**
- * Keyed by chart type, then by rendering technology. Every chart type has `Svg`; the Canvas and Html
- * entries exist only where Nivo actually ships one, and `CHART_RENDERER_SUPPORT` in `chartTypes.ts`
- * is the declaration of that same fact for the layers that must stay Nivo-free.
- *
- * The two tables are kept in step by `renderChart` asking `supportsRenderer` rather than probing
- * this object, so a disagreement surfaces as a fallback to SVG rather than as a crash.
- */
-const CHART_RENDERERS: Record<ChartType, Partial<Record<RendererMode, RenderFn>>> = {
-    AreaBump: { Svg: (data, c) => <ResponsiveAreaBump data={data} {...(c as any)} /> },
+const LOADERS: Record<ChartType, Partial<Record<RendererMode, Loader>>> = {
+    AreaBump: { Svg: () => import("@nivo/bump").then(m => m.ResponsiveAreaBump) },
     Bar: {
-        Svg: (data, c) => <ResponsiveBar data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveBarCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/bar").then(m => m.ResponsiveBar),
+        Canvas: () => import("@nivo/bar").then(m => m.ResponsiveBarCanvas)
     },
-    Bullet: { Svg: (data, c) => <ResponsiveBullet data={data} {...(c as any)} /> },
-    Bump: { Svg: (data, c) => <ResponsiveBump data={data} {...(c as any)} /> },
+    Bullet: { Svg: () => import("@nivo/bullet").then(m => m.ResponsiveBullet) },
+    Bump: { Svg: () => import("@nivo/bump").then(m => m.ResponsiveBump) },
     Calendar: {
-        Svg: (data, c) => <ResponsiveCalendar data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveCalendarCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/calendar").then(m => m.ResponsiveCalendar),
+        Canvas: () => import("@nivo/calendar").then(m => m.ResponsiveCalendarCanvas)
     },
     Chord: {
-        Svg: (data, c) => <ResponsiveChord data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveChordCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/chord").then(m => m.ResponsiveChord),
+        Canvas: () => import("@nivo/chord").then(m => m.ResponsiveChordCanvas)
     },
     Choropleth: {
-        Svg: (data, c) => <ResponsiveChoropleth data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveChoroplethCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/geo").then(m => m.ResponsiveChoropleth),
+        Canvas: () => import("@nivo/geo").then(m => m.ResponsiveChoroplethCanvas)
     },
     CirclePacking: {
-        Svg: (data, c) => <ResponsiveCirclePacking data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveCirclePackingCanvas data={data} {...(c as any)} />,
-        Html: (data, c) => <ResponsiveCirclePackingHtml data={data} {...(c as any)} />
+        Svg: () => import("@nivo/circle-packing").then(m => m.ResponsiveCirclePacking),
+        Canvas: () => import("@nivo/circle-packing").then(m => m.ResponsiveCirclePackingCanvas),
+        Html: () => import("@nivo/circle-packing").then(m => m.ResponsiveCirclePackingHtml)
     },
-    Funnel: { Svg: (data, c) => <ResponsiveFunnel data={data} {...(c as any)} /> },
+    Funnel: { Svg: () => import("@nivo/funnel").then(m => m.ResponsiveFunnel) },
     GeoMap: {
-        Svg: (_data, c) => <ResponsiveGeoMap {...(c as any)} />,
-        Canvas: (_data, c) => <ResponsiveGeoMapCanvas {...(c as any)} />
+        Svg: () => import("@nivo/geo").then(m => m.ResponsiveGeoMap),
+        Canvas: () => import("@nivo/geo").then(m => m.ResponsiveGeoMapCanvas)
     },
     HeatMap: {
-        Svg: (data, c) => <ResponsiveHeatMap data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveHeatMapCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/heatmap").then(m => m.ResponsiveHeatMap),
+        Canvas: () => import("@nivo/heatmap").then(m => m.ResponsiveHeatMapCanvas)
     },
     Line: {
-        Svg: (data, c) => <ResponsiveLine data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveLineCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/line").then(m => m.ResponsiveLine),
+        Canvas: () => import("@nivo/line").then(m => m.ResponsiveLineCanvas)
     },
-    Marimekko: { Svg: (data, c) => <ResponsiveMarimekko data={data} {...(c as any)} /> },
+    Marimekko: { Svg: () => import("@nivo/marimekko").then(m => m.ResponsiveMarimekko) },
     Network: {
-        Svg: (data, c) => <ResponsiveNetwork data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveNetworkCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/network").then(m => m.ResponsiveNetwork),
+        Canvas: () => import("@nivo/network").then(m => m.ResponsiveNetworkCanvas)
     },
     Pie: {
-        Svg: (data, c) => <ResponsivePie data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsivePieCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/pie").then(m => m.ResponsivePie),
+        Canvas: () => import("@nivo/pie").then(m => m.ResponsivePieCanvas)
     },
-    Radar: { Svg: (data, c) => <ResponsiveRadar data={data} {...(c as any)} /> },
-    RadialBar: { Svg: (data, c) => <ResponsiveRadialBar data={data} {...(c as any)} /> },
-    Sankey: { Svg: (data, c) => <ResponsiveSankey data={data} {...(c as any)} /> },
+    Radar: { Svg: () => import("@nivo/radar").then(m => m.ResponsiveRadar) },
+    RadialBar: { Svg: () => import("@nivo/radial-bar").then(m => m.ResponsiveRadialBar) },
+    Sankey: { Svg: () => import("@nivo/sankey").then(m => m.ResponsiveSankey) },
     ScatterPlot: {
-        Svg: (data, c) => <ResponsiveScatterPlot data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveScatterPlotCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/scatterplot").then(m => m.ResponsiveScatterPlot),
+        Canvas: () => import("@nivo/scatterplot").then(m => m.ResponsiveScatterPlotCanvas)
     },
-    Stream: { Svg: (data, c) => <ResponsiveStream data={data} {...(c as any)} /> },
-    Sunburst: { Svg: (data, c) => <ResponsiveSunburst data={data} {...(c as any)} /> },
+    Stream: { Svg: () => import("@nivo/stream").then(m => m.ResponsiveStream) },
+    Sunburst: { Svg: () => import("@nivo/sunburst").then(m => m.ResponsiveSunburst) },
     SwarmPlot: {
-        Svg: (data, c) => <ResponsiveSwarmPlot data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveSwarmPlotCanvas data={data} {...(c as any)} />
+        Svg: () => import("@nivo/swarmplot").then(m => m.ResponsiveSwarmPlot),
+        Canvas: () => import("@nivo/swarmplot").then(m => m.ResponsiveSwarmPlotCanvas)
     },
-    TimeRange: { Svg: (data, c) => <ResponsiveTimeRange data={data} {...(c as any)} /> },
+    TimeRange: { Svg: () => import("@nivo/calendar").then(m => m.ResponsiveTimeRange) },
     TreeMap: {
-        Svg: (data, c) => <ResponsiveTreeMap data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveTreeMapCanvas data={data} {...(c as any)} />,
-        Html: (data, c) => <ResponsiveTreeMapHtml data={data} {...(c as any)} />
+        Svg: () => import("@nivo/treemap").then(m => m.ResponsiveTreeMap),
+        Canvas: () => import("@nivo/treemap").then(m => m.ResponsiveTreeMapCanvas),
+        Html: () => import("@nivo/treemap").then(m => m.ResponsiveTreeMapHtml)
     },
-    Voronoi: { Svg: (data, c) => <ResponsiveVoronoi data={data} {...(c as any)} /> },
+    Voronoi: { Svg: () => import("@nivo/voronoi").then(m => m.ResponsiveVoronoi) },
     Waffle: {
-        Svg: (data, c) => <ResponsiveWaffle data={data} {...(c as any)} />,
-        Canvas: (data, c) => <ResponsiveWaffleCanvas data={data} {...(c as any)} />,
-        Html: (data, c) => <ResponsiveWaffleHtml data={data} {...(c as any)} />
+        Svg: () => import("@nivo/waffle").then(m => m.ResponsiveWaffle),
+        Canvas: () => import("@nivo/waffle").then(m => m.ResponsiveWaffleCanvas),
+        Html: () => import("@nivo/waffle").then(m => m.ResponsiveWaffleHtml)
     }
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Lazy components, cached by (chart type, renderer).
+ *
+ * **The cache is load-bearing, not an optimisation.** `lazy()` returns a new component type on every
+ * call, and React remounts when the component TYPE changes — so building one per render would tear
+ * the chart down and rebuild it on every render, losing every transition and re-fetching the chunk.
+ * Keyed and cached, the type is stable for the life of the page.
+ */
+const COMPONENTS = new Map<string, LazyExoticComponent<ChartComponent>>();
+
+function componentFor(chartType: ChartType, renderer: RendererMode): LazyExoticComponent<ChartComponent> {
+    const key = `${chartType}:${renderer}`;
+    const cached = COMPONENTS.get(key);
+    if (cached) {
+        return cached;
+    }
+
+    const loader = LOADERS[chartType][renderer] ?? (LOADERS[chartType].Svg as Loader);
+    const component = lazy(() => loader().then(resolved => ({ default: resolved })));
+    COMPONENTS.set(key, component);
+
+    return component;
+}
 
 /**
  * Draw the chart, falling back to SVG when the requested technology does not exist for this type.
@@ -145,6 +135,9 @@ const CHART_RENDERERS: Record<ChartType, Partial<Record<RendererMode, RenderFn>>
  * chart they asked for, drawn a different way — nothing is misrepresented. Rendering a Pie when a
  * Sankey was asked for shows them something plausible and wrong. Only the second is worth refusing
  * to draw over.
+ *
+ * **The returned element suspends** while its chunk loads, so the caller must render it inside a
+ * `<Suspense>` boundary.
  */
 export function renderChart(
     chartType: ChartType,
@@ -153,7 +146,18 @@ export function renderChart(
     configuration: Record<string, unknown>
 ): ReactElement {
     const effective = supportsRenderer(chartType, renderer) ? renderer : "Svg";
-    const render = CHART_RENDERERS[chartType][effective] ?? CHART_RENDERERS[chartType].Svg!;
+    const Chart = componentFor(chartType, effective);
 
-    return render(data, configuration);
+    /*
+     * Geo Map has no meaningful `data` prop — its geography arrives through `features` in the
+     * configuration. `CHART_DATA_SHAPE` already records which types those are, so the decision is
+     * read from there rather than special-cased here; one fewer place to update when Nivo adds
+     * another features-only chart.
+     */
+    const takesBoundData = CHART_DATA_SHAPE[chartType] !== "features";
+
+    return takesBoundData
+        ? createElement(Chart, { data, ...configuration })
+        : createElement(Chart, { ...configuration });
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */

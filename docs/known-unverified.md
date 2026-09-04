@@ -53,6 +53,30 @@ feature.
 whole gallery walk — down from 138. Function properties therefore work end to end at runtime, which
 nothing had previously exercised.
 
+### RE-CHECK — do the lazy chunks survive Studio Pro’s second bundler?
+
+`registry.tsx` now loads each Nivo package with a dynamic `import()` (B-01), and a
+`rollup.config.mjs` override swaps `output.file` for `output.dir` on the web bundles so Rollup can
+emit chunks.
+
+**Measured, same build type so the comparison is valid:** the dev entry bundle went
+**4,592,154 → 159,459 bytes**. The release `.mpk` is 571,501 bytes with a 17,433-byte entry and 100
+chunks, and carries `dependencies.txt`, so it is a genuine release rather than a dev build sitting
+in the release path. **No release-to-release figure is quoted, because no pre-split release build
+was ever made** — quoting the dev-to-release delta as this change’s effect would be measuring two
+different things.
+
+**What the repo cannot prove: Studio Pro re-bundles the whole client after unpacking the `.mpk`.**
+The chunks must still be distinct afterwards, and the ES bundle is the one actually consumed.
+
+- After deploying, check `deployment/web/dist/chunks/` still holds separate `nivo-*` chunks.
+- Open a chart page and confirm the network tab fetches ONE chart chunk, not twenty-four.
+- Expect a brief flash of the new “Loading chart…” state — it is the Suspense fallback.
+- If the client bundler fails, its dialog is frequently empty; the real message is in
+  `deployment/log/app_bundle_log.txt`.
+
+---
+
 ### Still unrendered
 
 - **Canvas and HTML are now CONFIRMED** by `NivoGallery.ChartSample_Renderers`, which draws one Tree

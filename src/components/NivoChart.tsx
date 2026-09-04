@@ -1,4 +1,4 @@
-import { CSSProperties, Fragment, ReactElement, useMemo } from "react";
+import { CSSProperties, Fragment, ReactElement, Suspense, useMemo } from "react";
 
 import { renderChart } from "../charts/registry";
 import { CHART_DATA_SHAPE, ChartType, RendererMode } from "../charts/chartTypes";
@@ -115,7 +115,15 @@ export function NivoChart(props: NivoChartProps): ReactElement {
                 fallback={message => state("error", "This chart could not be drawn.", message)}
             >
                 <div className="aq-nivo__chart">
-                    {renderChart(chartType, renderer, data.ok ? data.value : undefined, merged.configuration)}
+                    {/*
+                     * The chart's Nivo package is loaded on demand (B-01), so the element suspends
+                     * until its chunk arrives. The fallback is the loading state rather than the
+                     * empty one: an empty message here would tell the user there is no data, when
+                     * the truth is that the data is fine and the code has not arrived yet.
+                     */}
+                    <Suspense fallback={state("loading", "Loading chart…")}>
+                        {renderChart(chartType, renderer, data.ok ? data.value : undefined, merged.configuration)}
+                    </Suspense>
                 </div>
             </ChartErrorBoundary>
         );
@@ -143,7 +151,7 @@ export function NivoChart(props: NivoChartProps): ReactElement {
     );
 }
 
-function state(kind: "empty" | "error", message: string, detail?: string): ReactElement {
+function state(kind: "empty" | "error" | "loading", message: string, detail?: string): ReactElement {
     return (
         <div className={`aq-nivo__state aq-nivo__state--${kind}`}>
             <Fragment>
