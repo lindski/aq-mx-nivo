@@ -43,8 +43,34 @@ import { ParseResult } from "./parseJson";
  *
  * Double-underscored and Mendix-prefixed to stay out of the way of a modeller's own output keys, and
  * `projectRows` refuses a mapping that would write it anyway.
+ *
+ * **The value is an opaque `"r<index>"` string, not the number, and that is not decoration.** Nivo's
+ * Bar runs each datum through this before handing it to a click, tooltip or label callback:
+ *
+ * ```js
+ * Object.keys(e).reduce((t, a) => (e[a] && (t[a] = e[a]), t), {})
+ * ```
+ *
+ * `e[a] &&` — so every **falsy** value is dropped. A numeric handle of `0` therefore disappeared from
+ * the first row's datum and only the first row's, giving a chart where every bar drilled through
+ * except the leftmost, silently. `"r0"` is truthy, so it survives. Verified in the running app and
+ * then in `@nivo/bar`'s source; see docs/known-unverified.md.
  */
 export const ROW_KEY = "__mxRow";
+
+/** Build the opaque handle for a row at `index`. */
+export function rowToken(index: number): string {
+    return `r${index}`;
+}
+
+/** Read a row index back out of an opaque handle, or `undefined` if it is not one. */
+export function rowFromToken(value: unknown): number | undefined {
+    if (typeof value !== "string") {
+        return undefined;
+    }
+    const match = /^r(\d+)$/.exec(value);
+    return match ? Number(match[1]) : undefined;
+}
 
 /** One mapped column: which row field to read, and what to call it in the chart datum. */
 export interface RowMapping {
@@ -127,7 +153,7 @@ export function projectRows(input: ProjectionInput): ParseResult<unknown> {
             datum[mapping.outputKey] = row[mapping.source];
         }
         if (includeRowKey) {
-            datum[ROW_KEY] = index;
+            datum[ROW_KEY] = rowToken(index);
         }
         return datum;
     };

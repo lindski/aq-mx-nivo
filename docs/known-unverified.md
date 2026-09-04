@@ -328,6 +328,7 @@ Measured against `NivoGallery.ChartSample_Datasource`, both charts calling
 | Action | Result |
 |---|---|
 | Bar, Q3 (real Playwright click) | *Clicked Motor Q3 — 455 claims, 13.2 days average.* |
+| Bar, **Q1** — the first row | initially **silent**; see the falsy-strip section below. Fixed and re-verified. |
 | Line, **Property** Q1 | *Clicked Property Q1 — 218 claims, 19.5 days average.* |
 | Bar, plot area above the bars | nothing, silently |
 
@@ -342,6 +343,36 @@ the downstream memoisation work — so the chart holds copies. The handle theref
 datum under `ROW_KEY` (`__mxRow`), as the row's index into the list the projection was given, carried
 only when a click action is configured. `resolveRowKey` probes a short ordered list of places it can
 sit rather than switching on chart type, because Nivo has no single click contract.
+
+### Nivo Bar strips every FALSY value from the datum it hands your callbacks
+
+Found in the running app when the first bar would not drill through and the other three would.
+`@nivo/bar` 0.99, stacked path:
+
+```js
+B = function (e) { return Object.keys(e).reduce(function (t, a) {
+    return e[a] && (t[a] = e[a]), t }, {}) }
+```
+
+`e[a] &&` — so **`0`, `""`, `false`, `null` and `NaN` are all dropped** from the per-bar `data` before
+it reaches a click, tooltip or label callback. The bars themselves draw correctly; the `data` array
+passed to `ResponsiveBar` is untouched. Only the callback view is filtered.
+
+**This is not just our row handle.** Any mapped column whose value is 0, false or an empty string is
+missing from the datum a stacked Bar hands a custom tooltip — so a tooltip reading `datum.data.claims`
+shows nothing for a genuine zero, which reads as a broken tooltip rather than a real value of none.
+Worth knowing before writing any tooltip function against a Bar.
+
+For the row handle the fix is that `ROW_KEY` carries an opaque `"r<index>"` **string** rather than the
+number: `"r0"` is truthy where `0` is not. `resolveRowKey` accepts only that token and deliberately
+refuses a bare number, because mapped columns are full of numbers and resolving one as a row index
+would drill into the **wrong** Mendix object — confidently wrong being worse than a dead click.
+
+**How it presented, which is the part worth remembering.** Three of four bars worked. Nothing errored,
+nothing logged, and every unit test passed — the projection genuinely produced `__mxRow: 0`, and the
+data handed to Nivo genuinely contained it. Only the datum Nivo handed *back* had lost it. A test that
+asserted "index 0 resolves" passed the whole time, because the loss happened outside the code under
+test.
 
 ### Line's click surface is the mesh, not its points — and the default is off
 

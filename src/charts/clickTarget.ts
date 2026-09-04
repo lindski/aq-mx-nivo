@@ -1,4 +1,4 @@
-import { ROW_KEY } from "../data/projectRows";
+import { ROW_KEY, rowFromToken } from "../data/projectRows";
 
 /**
  * Finding the clicked row inside a Nivo click payload.
@@ -39,8 +39,10 @@ const PROBES: ReadonlyArray<(payload: Record<string, unknown>) => unknown> = [
 /**
  * The row index a click landed on, or `undefined` when the payload does not identify a single row.
  *
- * Deliberately strict about what counts: a non-integer, a negative, or anything that is not a number
- * is treated as absent. A `0` must survive, which rules out the obvious falsy check.
+ * Strict about what counts: only the opaque `"r<index>"` token `projectRows` writes is accepted. A
+ * bare number is deliberately NOT accepted, even though it would look like a reasonable handle —
+ * mapped columns are full of numbers, and treating one as a row index would drill into the wrong
+ * Mendix object rather than fail to drill at all. Wrong is worse than nothing here.
  */
 export function resolveRowKey(payload: unknown): number | undefined {
     const record = asRecord(payload);
@@ -49,9 +51,9 @@ export function resolveRowKey(payload: unknown): number | undefined {
     }
 
     for (const probe of PROBES) {
-        const candidate = probe(record);
-        if (typeof candidate === "number" && Number.isInteger(candidate) && candidate >= 0) {
-            return candidate;
+        const index = rowFromToken(probe(record));
+        if (index !== undefined) {
+            return index;
         }
     }
 

@@ -1,5 +1,5 @@
 import { CHART_DATASOURCE_SHAPE, CHART_TYPES } from "../charts/chartTypes";
-import { projectRows, ROW_KEY, RowMapping } from "./projectRows";
+import { projectRows, ROW_KEY, rowToken, RowMapping } from "./projectRows";
 
 const ok = (result: ReturnType<typeof projectRows>): unknown => {
     if (!result.ok) {
@@ -192,8 +192,8 @@ describe("the row handle a click is traced back with", () => {
             })
         );
         expect(value).toEqual([
-            { Status: "Settled", [ROW_KEY]: 0 },
-            { Status: "Notified", [ROW_KEY]: 1 }
+            { Status: "Settled", [ROW_KEY]: rowToken(0) },
+            { Status: "Notified", [ROW_KEY]: rowToken(1) }
         ]);
     });
 
@@ -225,11 +225,11 @@ describe("the row handle a click is traced back with", () => {
             {
                 id: "Motor",
                 data: [
-                    { x: "Jan", y: 12, [ROW_KEY]: 0 },
-                    { x: "Feb", y: 14, [ROW_KEY]: 2 }
+                    { x: "Jan", y: 12, [ROW_KEY]: rowToken(0) },
+                    { x: "Feb", y: 14, [ROW_KEY]: rowToken(2) }
                 ]
             },
-            { id: "Property", data: [{ x: "Jan", y: 19, [ROW_KEY]: 1 }] }
+            { id: "Property", data: [{ x: "Jan", y: 19, [ROW_KEY]: rowToken(1) }] }
         ]);
     });
 
