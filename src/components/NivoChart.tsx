@@ -35,6 +35,12 @@ export interface NivoChartProps {
     chartTypeError?: string;
     /** Raw JSON text, not a parsed object. Parsing here is what makes the memoisation work. */
     dataJson?: string;
+    /**
+     * Set when datasource mode could not project the rows — an unsupported chart type, no mapped
+     * columns, or two columns writing the same key. Passed in rather than detected here, because
+     * projection needs the Mendix ListValue and this component is deliberately Mendix-free.
+     */
+    dataError?: string;
     staticConfiguration?: string;
     dynamicConfiguration?: string;
     functionProperties?: readonly FunctionPropertyDefinition[];
@@ -54,6 +60,7 @@ export function NivoChart(props: NivoChartProps): ReactElement {
         renderer,
         chartTypeError,
         dataJson,
+        dataError,
         staticConfiguration,
         dynamicConfiguration,
         functionProperties,
@@ -87,7 +94,12 @@ export function NivoChart(props: NivoChartProps): ReactElement {
         [props.heightMode, props.heightPixels, props.aspectRatio, style]
     );
 
-    const problems = [...(chartTypeError ? [chartTypeError] : []), ...(data.ok ? [] : [data.error]), ...merged.errors];
+    const problems = [
+        ...(chartTypeError ? [chartTypeError] : []),
+        ...(dataError ? [dataError] : []),
+        ...(data.ok ? [] : [data.error]),
+        ...merged.errors
+    ];
 
     const body = (): ReactElement => {
         if (problems.length > 0) {

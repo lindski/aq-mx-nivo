@@ -187,6 +187,60 @@ export const CHART_DATA_SHAPE: Record<ChartType, "array" | "object" | "features"
     Waffle: "array"
 };
 
+/**
+ * Whether a chart type can be built from a flat list of Mendix rows, and how.
+ *
+ * This is the ceiling on datasource mode, and it is a property of Nivo's data shapes rather than of
+ * this widget. **Read out of the installed 0.99 type declarations**, like the tables above.
+ *
+ * - `"flat"` — the chart takes an array of plain objects, so one row maps to one datum.
+ * - `"series"` — the chart takes `Serie[]`, each carrying a nested `data` array. Buildable from flat
+ *   rows by **partitioning** them on a series field. Partitioning is not aggregating: no row is
+ *   combined with another, so it does not run into the no-group-by ceiling below.
+ * - `"unsupported"` — the shape cannot be produced from a flat row list at all. Hierarchies
+ *   (`CirclePacking`, `Sunburst`, `TreeMap`), graphs (`Sankey`, `Network`), a numeric matrix
+ *   (`Chord`), GeoJSON (`GeoMap`), and `Bullet`, whose datum carries three nested arrays. These stay
+ *   JSON-only, which is not a gap to close — a flat table genuinely does not contain a tree.
+ *
+ * ## The two ceilings that shaped this, from `widget-datasource-contracts`
+ *
+ * **There is no group-by.** A Mendix datasource cannot be asked for aggregated rows, so the widget
+ * must never aggregate: a chart that sums in the browser is summing whatever it holds. Aggregation
+ * belongs in a microflow, and the datasource supplies rows already at chart granularity.
+ *
+ * **Which is why datasource mode must hold every row.** Charting one page and presenting it as the
+ * whole is not slow, it is wrong, and it looks entirely plausible — a bar chart of twenty rows
+ * labelled as the total for two thousand. So the widget takes the full list and never sets a limit.
+ */
+export const CHART_DATASOURCE_SHAPE: Record<ChartType, "flat" | "series" | "unsupported"> = {
+    AreaBump: "series",
+    Bar: "flat",
+    Bullet: "unsupported",
+    Bump: "series",
+    Calendar: "flat",
+    Chord: "unsupported",
+    Choropleth: "flat",
+    CirclePacking: "unsupported",
+    Funnel: "flat",
+    GeoMap: "unsupported",
+    HeatMap: "series",
+    Line: "series",
+    Marimekko: "flat",
+    Network: "unsupported",
+    Pie: "flat",
+    Radar: "flat",
+    RadialBar: "series",
+    Sankey: "unsupported",
+    ScatterPlot: "series",
+    Stream: "flat",
+    Sunburst: "unsupported",
+    SwarmPlot: "flat",
+    TimeRange: "flat",
+    TreeMap: "unsupported",
+    Voronoi: "flat",
+    Waffle: "flat"
+};
+
 export function isChartType(value: string): value is ChartType {
     return (CHART_TYPES as readonly string[]).includes(value);
 }

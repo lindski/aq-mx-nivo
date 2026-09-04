@@ -1,6 +1,7 @@
 import { AqNivoPreviewProps } from "../typings/AqNivoProps";
 import {
     CHART_DATA_SHAPE,
+    CHART_DATASOURCE_SHAPE,
     CHART_LABELS,
     CHART_RENDERER_SUPPORT,
     ChartType,
@@ -20,13 +21,19 @@ import { collectFunctionMarkers, resolveMarker } from "./config/functionRegistry
  * state — so nothing at runtime can distinguish a deliberate blank from a mistake. That is why these
  * checks are worth more per line than anything else in the widget.
  *
- * Note what is deliberately NOT here: `getProperties()` hides nothing. Two properties are
- * mode-specific — `containerHeight` and `aspectRatio` — and hiding them on `heightMode` would derive
+ * Note what is deliberately NOT here: `getProperties()` hides nothing. Several properties are
+ * mode-specific — `containerHeight` and `aspectRatio` on `heightMode`, and now the whole datasource
+ * half of the Data group on `dataMode` — and hiding them on the deciding property would derive
  * visibility from a property the modeller edits in the same sheet. That reshapes the sheet while it
  * is in use, and has been observed showing the wrong value against the right caption, with no error
  * anywhere. Hidden properties also cannot be written by page tooling: they silently revert to the
  * XML default, with a success report and a clean consistency check. A `check()` warning carries the
  * same information and costs neither.
+ *
+ * `dataMode` makes that second point concrete rather than theoretical: the gallery pages in the test
+ * app are written by page tooling, so hiding `chartDataJson` whenever `dataMode` is Data source would
+ * mean a page that switches to JSON mode gets the XML default written back over its payload, reported
+ * as a success. The mode checks below say the same thing and cannot do that.
  */
 
 type Properties = PropertyGroup[];
@@ -88,6 +95,75 @@ export function check(values: AqNivoPreviewProps): Problem[] {
     const staticResult = parseConfiguration(values.staticConfiguration, "Static configuration");
     if (!staticResult.ok) {
         problems.push({ property: "staticConfiguration", severity: "error", message: staticResult.error });
+    }
+
+    // --- data mode ------------------------------------------------------------------------------
+    //
+    // Rule 1 of the design-time-check pattern: a property left at its default is "not set up yet"
+    // and warrants a warning, but explicitly CHOOSING a mode and then leaving that mode's input
+    // empty is an error, because the choice was deliberate. Both branches below are the second case.
+
+    if (values.dataMode === "json") {
+        if (!values.chartDataJson) {
+            problems.push({
+                property: "chartDataJson",
+                severity: "error",
+                message:
+                    "Data from is JSON string, so Chart data must be bound to a String attribute holding the payload."
+            });
+        }
+    } else if (values.dataMode === "datasource") {
+        const shape = isChartType(values.chartType) ? CHART_DATASOURCE_SHAPE[values.chartType as ChartType] : undefined;
+
+        if (shape === "unsupported") {
+            problems.push({
+                property: "dataMode",
+                severity: "error",
+                message:
+                    `${CHART_LABELS[values.chartType as ChartType]} cannot be built from a data source — its data is ` +
+                    `a tree, a graph, a matrix or a GeoJSON collection, and a flat list of rows does not contain one. ` +
+                    `Set Data from to JSON string for this chart type.`
+            });
+        }
+
+        if (!values.chartDataSource) {
+            problems.push({
+                property: "chartDataSource",
+                severity: "error",
+                message: "Data from is Data source, so Chart rows must be set."
+            });
+        }
+
+        if ((values.dataColumns ?? []).length === 0) {
+            problems.push({
+                property: "dataColumns",
+                severity: "error",
+                message:
+                    "No columns are mapped, so every row would project to an empty object. Map at least one attribute."
+            });
+        }
+
+        // Reported against the Series property rather than the chart type: the series column is the
+        // thing that is missing, and a problem raised against the empty field is the one that gets read.
+        if (shape === "series" && !values.seriesAttribute) {
+            problems.push({
+                property: "seriesAttribute",
+                severity: "error",
+                message:
+                    `${CHART_LABELS[values.chartType as ChartType]} draws several series, each with its own points, ` +
+                    `so it needs a Series attribute to split the rows on.`
+            });
+        }
+
+        if (shape === "flat" && values.seriesAttribute) {
+            problems.push({
+                property: "seriesAttribute",
+                severity: "warning",
+                message:
+                    `${CHART_LABELS[values.chartType as ChartType]} is a single-series chart, so Series is ignored ` +
+                    `here. It applies to Line, Scatter Plot, Heat Map, Radial Bar, Bump and Area Bump.`
+            });
+        }
     }
 
     // --- named function markers -----------------------------------------------------------------

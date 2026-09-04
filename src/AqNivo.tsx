@@ -1,10 +1,38 @@
 import { ReactElement, useEffect, useMemo } from "react";
 import { ValueStatus } from "mendix";
+import { Big } from "big.js";
 
 import { AqNivoContainerProps } from "../typings/AqNivoProps";
 import { NivoChart } from "./components/NivoChart";
 import { resolveChartType } from "./charts/resolveChartType";
+import { projectRows, RowMapping } from "./data/projectRows";
 import { ensureStyles } from "./ui/styles";
+
+/**
+ * Mendix attribute value -> plain JSON value.
+ *
+ * This exists for one reason, and it is not tidiness. **Decimal, Integer and Long all arrive as
+ * big.js instances**, and big.js defines `toJSON` as `toString`, so a `Big` serialises to the JSON
+ * *string* `"3.5"` rather than the number `3.5`. Nivo then builds an **ordinal** scale where a linear
+ * one was meant: the axis ticks become evenly spaced labels in row order, the bars all come out the
+ * same height, and nothing anywhere reports an error. Verified against big.js directly, not assumed.
+ *
+ * Precision: `Number()` cannot hold a Long beyond 2^53. That is accepted rather than worked around —
+ * a chart pixel is worth far less than an integer ulp, and every downstream Nivo scale is float
+ * arithmetic regardless.
+ *
+ * Dates are deliberately left alone: `Date` has its own `toJSON`, which yields ISO 8601, and that is
+ * the form Nivo's time scales parse.
+ */
+function toPlainValue(value: string | boolean | Date | Big | undefined): unknown {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+    if (typeof value === "object" && !(value instanceof Date) && "toNumber" in value) {
+        return Number(value.toString());
+    }
+    return value;
+}
 
 /**
  * The Mendix adapter — **the only file in this widget permitted to import `mendix`**.
@@ -18,7 +46,11 @@ const DEFAULT_EMPTY_MESSAGE = "No data to display.";
 
 export function AqNivo(props: AqNivoContainerProps): ReactElement {
     const {
+        dataMode,
         chartDataJson,
+        chartDataSource,
+        dataColumns,
+        seriesAttribute,
         chartType,
         chartTypeExpression,
         renderer,
@@ -51,7 +83,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
      * datasource mode lands.
      */
     const loading =
-        chartDataJson.status === ValueStatus.Loading ||
+        (dataMode === "json" && chartDataJson?.status === ValueStatus.Loading) ||
         (dynamicConfiguration !== undefined && dynamicConfiguration.status === ValueStatus.Loading) ||
         (chartTypeExpression !== undefined && chartTypeExpression.status === ValueStatus.Loading);
 
@@ -77,6 +109,61 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
         [functionProperties]
     );
 
+    /*
+     * Datasource mode: project the rows to the shape the chart expects, then serialise.
+     *
+     * Serialising back to a string is deliberate, not lazy. Every memo downstream keys on the raw
+     * data TEXT rather than on object identity, because Mendix hands out new instances freely and an
+     * identity-keyed memo re-parses on every render — which makes Nivo re-run its transitions
+     * continuously (C-02). Producing a string here means datasource mode inherits that whole design
+     * unchanged, and gets `parseChartData`'s shape validation for free rather than duplicating it.
+     *
+     * Note what is deliberately NOT here: any gate on the datasource's status. Gating the chart on
+     * `status === "available"` would unmount and remount it on every reload, and with a refresh
+     * interval that is every few seconds. The last good data simply stays on screen while new rows
+     * are in flight.
+     */
+    // Extracted so the memo dependency is a plain value the linter can check, rather than a
+    // conditional expression it has to give up on.
+    const effectiveChartType = resolved.ok ? resolved.chartType : chartType;
+
+    const projected = useMemo(() => {
+        if (dataMode !== "datasource") {
+            return undefined;
+        }
+
+        const items = chartDataSource?.items;
+        if (!items) {
+            // Mid-reload, or not yet loaded. Hold what is on screen rather than blanking the chart.
+            return undefined;
+        }
+
+        const mappings: RowMapping[] = (dataColumns ?? []).map((column, index) => ({
+            source: String(index),
+            outputKey: column.outputKey
+        }));
+
+        const rows = items.map(item => {
+            const row: Record<string, unknown> = {};
+            (dataColumns ?? []).forEach((column, index) => {
+                row[String(index)] = toPlainValue(column.columnAttribute?.get(item)?.value);
+            });
+            if (seriesAttribute) {
+                row.__series = toPlainValue(seriesAttribute.get(item)?.value);
+            }
+            return row;
+        });
+
+        const result = projectRows({
+            chartType: effectiveChartType,
+            rows,
+            mappings,
+            seriesSource: seriesAttribute ? "__series" : undefined
+        });
+
+        return result.ok ? { json: JSON.stringify(result.value) } : { error: result.error };
+    }, [dataMode, chartDataSource?.items, dataColumns, seriesAttribute, effectiveChartType]);
+
     if (loading) {
         return (
             <div
@@ -98,7 +185,8 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
             chartType={resolved.ok ? resolved.chartType : chartType}
             renderer={renderer}
             chartTypeError={resolved.ok ? undefined : resolved.error}
-            dataJson={chartDataJson.value}
+            dataJson={dataMode === "datasource" ? projected?.json : chartDataJson?.value}
+            dataError={dataMode === "datasource" ? projected?.error : undefined}
             staticConfiguration={staticConfiguration}
             dynamicConfiguration={dynamicConfiguration?.value}
             functionProperties={functions}

@@ -266,16 +266,39 @@ Listed so nobody reports them as defects.
 
 ## Not yet built, and known not to be
 
-All of this is the remainder of 2.0:
-
-- **Nothing is code-split.** Every `@nivo` package is statically imported by
-  `src/charts/registry.tsx`, so a page using one chart still pays for all 26 (B-01). The registry
-  indirection exists to make that a change to one file.
-- **No datasource mode.** JSON is the only way data reaches the widget. When it lands, note that
-  `ListValue` has **no group-by**: the datasource must supply rows at the granularity the chart plots,
-  or a client-side aggregate over a paged datasource presents a subtotal as a total.
-- **No interactivity** — no click handler, no drill-down, no selection.
+- **No interactivity** — no click handler, no drill-down, no selection. This is the reason datasource
+  mode exists: a click can only carry the row it fired on when there *is* a row, so JSON mode can
+  never do drill-down properly and datasource mode is the prerequisite, not a parallel feature.
 - **No theming hook.** Nivo's `theme` is not wired to Atlas, so charts look like Nivo rather than like
-  the app unless every placement hand-writes a theme block.
-- **No Canvas variants**, so large datasets render as SVG.
+  the app unless every placement hand-writes a theme block. Complicated at 0.99 by theming having
+  moved to `@nivo/theming`.
 - **No tabular alternative** for screen readers.
+
+---
+
+## Datasource mode — built, and unverified in a running app
+
+Wired and green on lint, `check:layers`, 64 unit tests and the build. **None of it has drawn a chart
+from a Mendix list**, so everything below is a claim about code, not an observation:
+
+- **`projectRows` is proven, the adapter around it is not.** The projection is pure and unit-tested
+  in isolation; what has never run is the Mendix half — `column.columnAttribute?.get(item)?.value`
+  over real `ObjectItem`s.
+  - **The `Big` trap was found and fixed before shipping, not left to the app.** Decimal, Integer and
+    Long all arrive as big.js instances, and big.js defines `toJSON` as `toString`, so an unconverted
+    value serialises to the JSON *string* `"3.5"`. Nivo would then build an ordinal scale where a
+    linear one was meant — even bar heights, labels for ticks, no error anywhere. `toPlainValue` in
+    `AqNivo.tsx` coerces it. Confirmed by running big.js directly; the unit tests could never have
+    caught it, because they feed plain numbers.
+- **A `DateTime` attribute arrives as a `Date`** and serialises to ISO 8601 through `Date`'s own
+  `toJSON` (confirmed). Whether the time scales (Calendar, TimeRange, a time-scaled Line) accept
+  *that* form is a separate question and is **not** confirmed — Calendar in particular wants
+  `YYYY-MM-DD`, and an ISO timestamp may need trimming.
+- **`chartDataSource?.items` as a memo dependency is an identity check, not a value check.** It holds
+  the last good rows through a reload by design (C-04 / Rule 6, no gate on `status`), but whether
+  Mendix hands back a *new* array on every render — which would re-project and re-serialise every
+  time, defeating the text-keyed memo downstream — has not been measured.
+- **The `check()` mode rules have not been seen in Studio Pro.** A rebuilt `check()` does nothing
+  until the project is closed and reopened, so any test of them must start from a fresh open.
+- **No page uses it.** All 27 gallery instances are JSON mode, which is also why `json` had to stay
+  the enum default.

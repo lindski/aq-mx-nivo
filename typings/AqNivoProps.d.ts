@@ -3,9 +3,16 @@
  * WARNING: All changes made to this file will be overwritten
  * @author Mendix Widgets Framework Team
  */
-import { DynamicValue, EditableValue } from "mendix";
+import { DynamicValue, EditableValue, ListAttributeValue, ListValue } from "mendix";
 import { Big } from "big.js";
 import { CSSProperties } from "react";
+
+export type DataModeEnum = "json" | "datasource";
+
+export interface DataColumnsType {
+    columnAttribute?: ListAttributeValue<string | boolean | Date | Big>;
+    outputKey: string;
+}
 
 export type ChartTypeEnum =
     | "AreaBump"
@@ -45,6 +52,11 @@ export interface FunctionPropertiesType {
 
 export type HeightModeEnum = "pixels" | "aspectRatio" | "fillParent";
 
+export interface DataColumnsPreviewType {
+    columnAttribute: string;
+    outputKey: string;
+}
+
 export interface FunctionPropertiesPreviewType {
     propertyName: string;
     functionArguments: string;
@@ -56,7 +68,11 @@ export interface AqNivoContainerProps {
     class: string;
     style?: CSSProperties;
     tabIndex?: number;
-    chartDataJson: EditableValue<string>;
+    dataMode: DataModeEnum;
+    chartDataJson?: EditableValue<string>;
+    chartDataSource?: ListValue;
+    dataColumns: DataColumnsType[];
+    seriesAttribute?: ListAttributeValue<string | boolean | Date | Big>;
     chartType: ChartTypeEnum;
     chartTypeExpression?: DynamicValue<string>;
     renderer: RendererEnum;
@@ -81,7 +97,11 @@ export interface AqNivoPreviewProps {
     readOnly: boolean;
     renderMode: "design" | "xray" | "structure";
     translate: (text: string) => string;
+    dataMode: DataModeEnum;
     chartDataJson: string;
+    chartDataSource: {} | { caption: string } | { type: string } | null;
+    dataColumns: DataColumnsPreviewType[];
+    seriesAttribute: string;
     chartType: ChartTypeEnum;
     chartTypeExpression: string;
     renderer: RendererEnum;
