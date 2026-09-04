@@ -68,8 +68,15 @@ nothing had previously exercised.
   a browser text search get nothing but the Accessible label. That is a real accessibility
   trade-off, it is not obvious from the property sheet, and it is now stated in the renderer
   property description.
-- **Voronoi draws only 4 paths**, which is sparse for a tessellation. Not investigated — it may be
-  correct for the payload, or the payload may be thin.
+- ~~Voronoi draws only 4 paths~~ — **retracted, this was a measurement error, not a defect.**
+  Nivo renders one `<path>` per LAYER (`links`, `cells`, `points`, `bounds`), not one per datum, and
+  the count was taken from a `d` attribute truncated to 60 characters. The full paths carry 12 link
+  segments, 18 cell segments and **10 point circles (20 arcs)** — exactly the ten data points.
+  Voronoi renders correctly.
+
+  **Worth keeping as a method note:** counting SVG elements is not a proxy for counting data in a
+  library that batches a layer into one path. Count path commands, or count what the chart is
+  supposed to encode — not nodes.
 
 ---
 
