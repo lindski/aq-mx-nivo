@@ -16,19 +16,19 @@ Status as of **2026-09-04**, after the renderer split, the two check() defect fi
 configuration. That is the first evidence that the 26 payloads derived from the 0.99 typings are
 sound. Two defects were found and fixed; both need re-checking in the app.
 
-### RE-CHECK 1 — Geo Map should now render instead of showing the empty state
+### CONFIRMED 2026-09-04 — Geo Map now renders instead of showing the empty state
 
 `NivoChart` gated on empty BOUND data before rendering, so Geo Map — which has no meaningful `data`
 prop and takes its geography through `features` in the configuration — was unrenderable **even when
 fully configured**. The gate now skips any chart type whose `CHART_DATA_SHAPE` is `"features"`.
 
-**Expect:** the Geo Map page renders an SVG shell rather than "No sample data for this chart type."
+**Confirmed in the running app:** the chart host is present and the empty state is gone. The Geo Map page renders an SVG shell rather than "No sample data for this chart type."
 It will still look blank, because no GeoJSON is supplied — that part is unchanged and correct, and
 the design-time warning says so. **Supplying a small feature collection is the only way to prove Geo
 Map and Choropleth actually draw**; the world-countries file is ~250 KB and is deliberately not
 shipped. A three-country GeoJSON in the sample would close this properly.
 
-### RE-CHECK 2 — Network should now draw, via function properties
+### CONFIRMED 2026-09-04 — Network draws, via function properties
 
 Network produced 53 NaN coordinates and ~138 console errors. **The data was never wrong** — every
 node carried `size`, every link carried `distance`. The configuration used the **string accessor**
@@ -49,13 +49,25 @@ The sample now supplies both as **function properties** on the widget instance (
 `link.distance`) rather than in the JSON, which also makes it the only sample demonstrating that
 feature.
 
-**Expect:** a force-directed graph with seven variably-sized nodes and eight links, and **zero**
-console errors on that page. Zero NaN is the assertion; the console count is the quick check.
+**Confirmed in the running app:** 7 circles, 8 lines, **0 NaN**, and **0 console errors** across the
+whole gallery walk — down from 138. Function properties therefore work end to end at runtime, which
+nothing had previously exercised.
 
 ### Still unrendered
 
-- **No Canvas or HTML chart has been drawn in a browser.** No gallery page uses one; `nivoR14` in
-  the check harness is the only exercise either has had, and that is design-time only.
+- **Canvas and HTML are now CONFIRMED** by `NivoGallery.ChartSample_Renderers`, which draws one Tree
+  Map three ways. They are structurally distinct in the DOM, and the difference matters:
+
+  | Renderer | `<svg>` | `<canvas>` | `<div>` | Label text in the DOM |
+  |---|---|---|---|---|
+  | SVG | 1 | 0 | 2 | yes |
+  | Canvas | 0 | **1** | 2 | **none** |
+  | HTML | 0 | 0 | **30** | yes |
+
+  **Canvas puts no label text in the DOM at all** — the chart is one bitmap, so a screen reader and
+  a browser text search get nothing but the Accessible label. That is a real accessibility
+  trade-off, it is not obvious from the property sheet, and it is now stated in the renderer
+  property description.
 - **Voronoi draws only 4 paths**, which is sparse for a tessellation. Not investigated — it may be
   correct for the payload, or the payload may be thin.
 
