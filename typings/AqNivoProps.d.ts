@@ -44,6 +44,8 @@ export type ChartTypeEnum =
 
 export type RendererEnum = "Svg" | "Canvas" | "Html";
 
+export type AtlasThemeEnum = "full" | "chrome" | "off";
+
 export interface FunctionPropertiesType {
     propertyName: string;
     functionArguments: string;
@@ -77,6 +79,7 @@ export interface AqNivoContainerProps {
     chartType: ChartTypeEnum;
     chartTypeExpression?: DynamicValue<string>;
     renderer: RendererEnum;
+    atlasTheme: AtlasThemeEnum;
     staticConfiguration: string;
     dynamicConfiguration?: EditableValue<string>;
     functionProperties: FunctionPropertiesType[];
@@ -107,6 +110,7 @@ export interface AqNivoPreviewProps {
     chartType: ChartTypeEnum;
     chartTypeExpression: string;
     renderer: RendererEnum;
+    atlasTheme: AtlasThemeEnum;
     staticConfiguration: string;
     dynamicConfiguration: string;
     functionProperties: FunctionPropertiesPreviewType[];

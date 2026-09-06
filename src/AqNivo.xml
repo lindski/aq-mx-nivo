@@ -120,6 +120,15 @@
             </property>
         </propertyGroup>
         <propertyGroup caption="Configuration">
+            <property key="atlasTheme" type="enumeration" defaultValue="full">
+                <caption>Match app theme</caption>
+                <description>Whether the chart takes its look from the app's own Atlas theme, so it matches the pages around it without a theme block being written into every placement. The theme is read from the app's CSS variables while the chart is on screen, not copied at design time, so a chart follows a theme the user switches — light to dark — without a reload, and follows a theme scoped to part of a page. Full applies both halves: the chrome (font, text colour, axes, grid, legends, tooltip) and a series palette built from the brand colours. Chrome only applies the chrome and leaves series colour to Nivo, which is the better choice for a chart with many series — a palette built from four brand hues starts repeating at the ninth series, where Nivo's own schemes do not. Off applies nothing. Whatever is set here is the BOTTOM layer: any key in the static or dynamic configuration overrides it, and a theme block set there is merged into this one rather than replacing it, so adjusting one font size does not discard the rest of the app's look. Eight chart types have no categorical colour property and ignore the palette — Heat Map, Calendar and Time Range colour by value rather than by category, and Bullet, Choropleth, Geo Map, Network and Voronoi colour by other properties entirely; the property sheet says so when you pick one.</description>
+                <enumerationValues>
+                    <enumerationValue key="full">Full — chrome and colours</enumerationValue>
+                    <enumerationValue key="chrome">Chrome only — keep Nivo colours</enumerationValue>
+                    <enumerationValue key="off">Off</enumerationValue>
+                </enumerationValues>
+            </property>
             <property key="staticConfiguration" type="string" multiline="true" required="false">
                 <caption>Configuration (static)</caption>
                 <description>Chart configuration as a JSON object, typed in here and fixed at design time. Use this for everything that does not change at runtime — axes, legends, margins, colour schemes. Merged first, so a value set here is overridden by the same key in the dynamic configuration or in a function property. Must be a valid JSON object; it is checked at design time.</description>

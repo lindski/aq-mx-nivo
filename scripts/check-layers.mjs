@@ -224,22 +224,19 @@ if (existsSync(packageJsonPath) && existsSync(packageXmlPath)) {
     }
 }
 
-// --- 8: the chart type vocabulary is declared twice, so check it agrees ----------------------
+// --- 8: every enumeration is declared twice, so check the copies agree ------------------------
 
 /**
- * `src/charts/chartTypes.ts` declares the chart types as a plain union so that the Mendix-free layer
- * does not have to import the generated typings — importing `ChartTypeEnum` there would break the
- * layering rule above for the sake of one string union.
+ * The Mendix-free layer declares each enumeration as a plain union rather than importing it from the
+ * generated typings — importing `ChartTypeEnum` into `charts/` would break the layering rule above
+ * for the sake of one string union.
  *
- * That leaves the vocabulary declared in two places. Rather than trust them to stay in step, assert
- * it: the enumeration keys in the widget XML and the entries in CHART_TYPES must be the same set.
- * Add a chart type to one and the build fails until it is added to the other.
+ * That leaves each vocabulary declared in two places. Rather than trust them to stay in step, assert
+ * it: the enumeration keys in the widget XML and the entries in the matching constant must be the
+ * same set. Add a value to one and the build fails until it is added to the other.
  */
-const chartTypesPath = join(srcDir, "charts", "chartTypes.ts");
-
-if (existsSync(widgetXmlPath) && existsSync(chartTypesPath)) {
+if (existsSync(widgetXmlPath)) {
     const xml = readFileSync(widgetXmlPath, "utf8");
-    const source = readFileSync(chartTypesPath, "utf8");
 
     /**
      * Pull the enumeration keys of ONE property, by name.
@@ -265,7 +262,7 @@ if (existsSync(widgetXmlPath) && existsSync(chartTypesPath)) {
         return [...block.matchAll(/<enumerationValue\s+key="([^"]*)"/g)].map(m => m[1]);
     };
 
-    const tsArrayEntries = name => {
+    const tsArrayEntries = (source, name) => {
         const opening = "export const " + name + " = [";
         const from = source.indexOf(opening);
         if (from < 0) {
@@ -276,25 +273,40 @@ if (existsSync(widgetXmlPath) && existsSync(chartTypesPath)) {
         return [...block.matchAll(/"([^"]+)"/g)].map(m => m[1]);
     };
 
-    /** Both vocabularies are declared twice, so assert both rather than trusting either. */
+    /**
+     * Every vocabulary declared both in the widget XML and in the Mendix-free layer.
+     *
+     * Each one exists because the layer that consumes it may not import the generated typings — so
+     * the union is written out a second time, and the two copies are asserted equal rather than
+     * trusted. `file` is part of the entry because these no longer all live in `chartTypes.ts`:
+     * `atlasTheme` belongs to `theme/`, and a guard hard-wired to one file would have silently
+     * skipped it.
+     */
     const VOCABULARIES = [
-        { property: "chartType", constant: "CHART_TYPES" },
-        { property: "renderer", constant: "RENDERER_MODES" }
+        { property: "chartType", constant: "CHART_TYPES", file: "src/charts/chartTypes.ts" },
+        { property: "renderer", constant: "RENDERER_MODES", file: "src/charts/chartTypes.ts" },
+        { property: "atlasTheme", constant: "ATLAS_THEME_MODES", file: "src/theme/atlasTheme.ts" }
     ];
 
-    for (const { property, constant } of VOCABULARIES) {
+    for (const { property, constant, file } of VOCABULARIES) {
+        const path = join(root, file);
+        if (!existsSync(path)) {
+            report(file, 1, constant, "is declared missing — the vocabulary guard cannot run against a file that is not there");
+            continue;
+        }
+
         const xmlKeys = xmlEnumKeys(property);
-        const tsKeys = tsArrayEntries(constant);
+        const tsKeys = tsArrayEntries(readFileSync(path, "utf8"), constant);
 
         if (xmlKeys.length === 0) {
             report("src/AqNivo.xml", 1, `<property key="${property}">`, "declares no enumeration values — a guard that finds nothing is not a passing guard");
         }
         if (tsKeys.length === 0) {
-            report("src/charts/chartTypes.ts", 1, constant, "declares no entries — a guard that finds nothing is not a passing guard");
+            report(file, 1, constant, "declares no entries — a guard that finds nothing is not a passing guard");
         }
 
         for (const key of xmlKeys.filter(k => !tsKeys.includes(k))) {
-            report("src/charts/chartTypes.ts", 1, constant, `is missing "${key}", which AqNivo.xml declares for ${property}`);
+            report(file, 1, constant, `is missing "${key}", which AqNivo.xml declares for ${property}`);
         }
         for (const key of tsKeys.filter(k => !xmlKeys.includes(k))) {
             report("src/AqNivo.xml", 1, `<property key="${property}">`, `is missing "${key}", which ${constant} declares`);

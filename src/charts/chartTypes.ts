@@ -241,6 +241,56 @@ export const CHART_DATASOURCE_SHAPE: Record<ChartType, "flat" | "series" | "unsu
     Waffle: "flat"
 };
 
+/**
+ * Whether this chart type takes a **categorical** palette on its `colors` prop.
+ *
+ * This is the ceiling on the Atlas palette half of theming (P-11), and like the tables above it is
+ * **read out of the installed 0.99 type declarations** rather than assumed. Eighteen chart types
+ * declare `colors: OrdinalColorScaleConfig<...>`, which accepts an array of colours, one per series
+ * or slice. The other eight do not, in three different ways:
+ *
+ * - **`HeatMap`** declares `colors: ContinuousColorScaleConfig`, a value ramp. An array is not that
+ *   shape.
+ * - **`Calendar` and `TimeRange`** declare `colors: string[]`, which *would* accept the palette — and
+ *   that is the trap. Their array is a low-to-high ramp for a day's value, not a set of categories.
+ *   Feeding it four brand hues produces a calendar where a busy day is red, a busier one blue, and
+ *   nothing is wrong enough to look broken. Excluded because it type-checks, not despite it.
+ * - **`Bullet`, `Choropleth`, `GeoMap`, `Network` and `Voronoi`** have no ordinal `colors` at all —
+ *   Bullet splits it into `rangeColors` / `measureColors` / `markerColors`, Choropleth quantizes a
+ *   sequential scheme, and the last three colour by other props entirely.
+ *
+ * Nivo components ignore props they do not destructure, so getting this wrong is silent in five of
+ * the eight cases and quietly wrong in the other three. `check()` says so at design time instead.
+ */
+export const CHART_PALETTE_SUPPORT: Record<ChartType, boolean> = {
+    AreaBump: true,
+    Bar: true,
+    Bullet: false,
+    Bump: true,
+    Calendar: false,
+    Chord: true,
+    Choropleth: false,
+    CirclePacking: true,
+    Funnel: true,
+    GeoMap: false,
+    HeatMap: false,
+    Line: true,
+    Marimekko: true,
+    Network: false,
+    Pie: true,
+    Radar: true,
+    RadialBar: true,
+    Sankey: true,
+    ScatterPlot: true,
+    Stream: true,
+    Sunburst: true,
+    SwarmPlot: true,
+    TimeRange: false,
+    TreeMap: true,
+    Voronoi: false,
+    Waffle: true
+};
+
 export function isChartType(value: string): value is ChartType {
     return (CHART_TYPES as readonly string[]).includes(value);
 }

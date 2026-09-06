@@ -152,12 +152,80 @@ it advertises configuration that does nothing.
   it as a problem with the spec files.
 - `@types/big.js` restored: `decimal` properties arrive as `Big`, so it is used now.
 
+### Added — code splitting (B-01)
+
+Backfilled: these three sections record work already in `main`, which the changelog had not caught
+up with. Written from the commits rather than from memory.
+
+- **Each Nivo package is loaded on demand.** `charts/registry.tsx` reaches every chart through a
+  dynamic `import()`, and `rollup.config.mjs` swaps `output.file` for `output.dir` so Rollup can
+  emit chunks. A page draws one chart and until now paid for all twenty-six: the dev entry bundle
+  went **4,592,154 → 159,459 bytes**, with one chunk per package. The element suspends while its
+  chunk arrives, and the fallback is the loading state rather than the empty one — the data is fine,
+  the code has not landed.
+
+### Added — data source mode and click-through (P-03)
+
+- **New property `Data from` (`dataMode`)**, `JSON string` or `Data source`. Data source binds an
+  ordinary Mendix list and maps attributes onto chart keys through the new `Columns` and `Series`
+  properties, so no JSON is written anywhere. Eight chart types stay JSON-only — a flat row list
+  does not contain a tree, a graph, a matrix or GeoJSON — and `check()` says which.
+- **The widget never aggregates and never pages.** A Mendix data source cannot be asked for grouped
+  rows, so the rows must arrive at chart granularity; charting one page and presenting it as the
+  whole is not slow, it is wrong, and it looks entirely plausible.
+- **New property `On click` (`onClickAction`)**, which carries the Mendix row a datum was drawn from
+  into a microflow — the chart becomes a way into the data rather than a picture of it. It declares
+  its `dataSource`, without which the action still fires and the microflow silently receives
+  nothing. Series-level charts (Stream, Bump, Area Bump) cannot identify one row and are warned
+  about at design time, as is a Line without `useMesh`, whose points have no click handler at all.
+- **Fixed: Nivo Bar strips every falsy value from the datum it hands your callbacks** on its
+  *stacked* path, so a row handle of `0` vanished and the first bar — only the first — was silently
+  un-clickable. The handle is now the opaque string `"r<index>"`, which is truthy and survives.
+  The grouped path passes the datum raw, so the two group modes genuinely differ.
+
+### Added — Atlas theming (P-11)
+
+- **New property `Match app theme` (`atlasTheme`), default `Full`.** A chart takes its look from the
+  app's own Atlas theme, so a placement no longer has to carry a hand-written theme block to stop
+  looking like a stock Nivo demo. `Full` applies the chrome and a brand-derived series palette,
+  `Chrome only` applies the chrome and leaves series colour to Nivo, `Off` applies nothing.
+- **The theme is read from the app's CSS custom properties while the chart is on screen**, not
+  copied at design time. An Atlas app switches theme by putting a class on the root element, so the
+  tokens are re-read on a root attribute change and on a `prefers-color-scheme` change: a chart
+  follows a light-to-dark switch without a reload, and a theme scoped to one panel themes only the
+  charts inside it. State is written only when a token *value* differs, so unrelated DOM activity
+  cannot restart Nivo's transitions.
+- **Colour tokens are resolved to `rgb()` before they reach Nivo.** Atlas builds its shades with
+  `color-mix()`, and an unregistered custom property's computed value is the token stream, not a
+  colour — so `getComputedStyle` hands back `color-mix(in srgb, ...)` verbatim. Nivo derives label
+  and border colours with d3-color, whose parser returns `null` for that and for the `color(srgb …)`
+  form a browser produces when it does evaluate one. See `src/theme/atlasTokens.ts`.
+- **`atlasTheme` is the bottom configuration layer.** Anything in the static or dynamic
+  configuration overrides it. `theme` alone is deep-merged rather than replaced — Nivo itself
+  deep-merges a `PartialTheme`, so adjusting one font size must not discard the rest of the app's
+  look. Everything else, `colors` included, still replaces wholesale.
+- **The palette applies to the 18 chart types that take an ordinal `colors`.** The other eight are
+  listed in `CHART_PALETTE_SUPPORT` with the reason each is excluded; `Calendar` and `TimeRange` are
+  the ones worth knowing, because their `colors: string[]` would accept the palette and produce a
+  value ramp made of four unrelated hues. `check()` reports the pairing at design time.
+- **Nothing about setting colours yourself changed.** All five forms of Nivo's
+  `OrdinalColorScaleConfig` still work from the static or dynamic configuration and still win over
+  the Atlas palette: a scheme (`{"scheme": "category10"}`), an explicit array, a single static
+  colour, a datum accessor (`{"datum": "data.color"}`), or a function via a named marker
+  (`"@fn:prop:data.color"`). Setting `colors` alongside `Full` raises a design-time *warning*, not an
+  error — it names the state where a chart keeps its own palette while its text and axes follow the
+  app, which is reasonable to want and confusing to meet by accident. `Chrome only` says the
+  override was deliberate.
+- **Worth knowing, and unchanged by this release:** a `color` field sitting in the payload is **not**
+  read on its own. Verified in the installed 0.99 packages — Pie, Bar and Line all default `colors`
+  to `{scheme: "nivo"}`, a scheme rather than a datum accessor — so per-datum colour needs
+  `{"datum": "data.color"}` or the marker form to be configured before Nivo looks for it.
+
 ### Still not done — the rest of 2.0
 
-Code splitting (B-01 — a page using one chart still pays for all 26), datasource mode, click-through
-and selection, the Atlas theming hook, Canvas variants, and a tabular alternative for screen readers.
-`npm run check:layers` and `npm test` both pass; `docs/known-unverified.md` lists what only a running
-app can confirm.
+Accessibility (P-12) — a tabular alternative for screen readers — and interactivity beyond Bar and
+Line, scoped by click-payload family rather than by chart type. `npm run prerelease` passes;
+`docs/known-unverified.md` lists what only a running app can confirm, and theming is on it.
 
 ## 1.0.0 — 2023-02-20
 

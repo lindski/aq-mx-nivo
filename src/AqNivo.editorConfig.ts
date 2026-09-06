@@ -3,6 +3,7 @@ import {
     CHART_DATA_SHAPE,
     CHART_DATASOURCE_SHAPE,
     CHART_LABELS,
+    CHART_PALETTE_SUPPORT,
     CHART_RENDERER_SUPPORT,
     ChartType,
     RendererMode,
@@ -434,6 +435,47 @@ export function check(values: AqNivoPreviewProps): Problem[] {
             severity: "warning",
             message:
                 "Geo Map takes its geography through a 'features' key in the configuration, not through Chart data — bound data is not passed to this chart type. Supply a GeoJSON feature collection as 'features' in the static or dynamic configuration."
+        });
+    }
+
+    // --- theming ------------------------------------------------------------------------------------
+    //
+    // Both of these are about a setting that silently does nothing. Nivo components ignore props they
+    // do not destructure, so a palette handed to a chart type that has no ordinal `colors` produces
+    // no error, no warning and no visible difference — the chart simply keeps Nivo's colours while
+    // the property sheet says Full. And a `theme` or `colors` key typed into the configuration wins
+    // over the derived one by design, which is right, but leaves someone changing the app theme and
+    // watching one chart not follow.
+
+    if (isChartType(values.chartType) && values.atlasTheme === "full" && !CHART_PALETTE_SUPPORT[values.chartType]) {
+        const label = CHART_LABELS[values.chartType as ChartType];
+        const valueRamp = ["HeatMap", "Calendar", "TimeRange"].includes(values.chartType);
+
+        problems.push({
+            property: "atlasTheme",
+            severity: "warning",
+            message: valueRamp
+                ? `${label} colours by value rather than by category, so the Atlas palette does not apply and this ` +
+                  `behaves as Chrome only. Set its colour ramp through "colors" in the configuration.`
+                : `${label} has no categorical colour property, so the Atlas palette does not apply and this ` +
+                  `behaves as Chrome only. The chrome — font, axes, grid, tooltip — is still applied.`
+        });
+    }
+
+    /*
+     * Only `colors` is worth reporting. A `theme` block set in the configuration is merged INTO the
+     * Atlas theme rather than replacing it, so both apply and there is nothing to warn about —
+     * `colors` replaces wholesale, so the chart keeps that palette while the rest of it follows the
+     * app, which is a state worth naming out loud.
+     */
+    if (values.atlasTheme === "full" && staticResult.ok && "colors" in staticResult.value) {
+        problems.push({
+            property: "staticConfiguration",
+            severity: "warning",
+            message:
+                'Match app theme is Full and the configuration also sets "colors", which wins. The chart keeps this ' +
+                "palette when the app theme changes, while its text and axes follow. Remove it to follow the app " +
+                "throughout, or set Match app theme to Chrome only to say the override is deliberate."
         });
     }
 

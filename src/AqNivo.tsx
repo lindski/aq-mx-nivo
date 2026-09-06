@@ -59,6 +59,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
         staticConfiguration,
         dynamicConfiguration,
         functionProperties,
+        atlasTheme,
         heightMode,
         containerHeight,
         aspectRatio,
@@ -235,6 +236,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
             staticConfiguration={staticConfiguration}
             dynamicConfiguration={dynamicConfiguration?.value}
             functionProperties={functions}
+            atlasTheme={atlasTheme}
             heightMode={heightMode}
             heightPixels={containerHeight}
             /* `decimal` properties arrive as Big, not number. */

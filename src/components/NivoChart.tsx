@@ -1,10 +1,12 @@
-import { CSSProperties, Fragment, ReactElement, Suspense, useMemo } from "react";
+import { CSSProperties, Fragment, ReactElement, Suspense, useMemo, useRef } from "react";
 
 import { renderChart } from "../charts/registry";
-import { CHART_DATA_SHAPE, ChartType, RendererMode } from "../charts/chartTypes";
+import { CHART_DATA_SHAPE, CHART_PALETTE_SUPPORT, ChartType, RendererMode } from "../charts/chartTypes";
 import { isEmptyData, parseChartData } from "../data/parseJson";
 import { mergeCacheKey, mergeConfiguration } from "../config/merge";
 import { FunctionPropertyDefinition } from "../config/functionProps";
+import { AtlasThemeMode, isPlainObject, mergeTheme } from "../theme/atlasTheme";
+import { useAtlasTheme } from "../theme/useAtlasTheme";
 import { ChartErrorBoundary } from "./ChartErrorBoundary";
 
 /**
@@ -54,6 +56,13 @@ export interface NivoChartProps {
     staticConfiguration?: string;
     dynamicConfiguration?: string;
     functionProperties?: readonly FunctionPropertyDefinition[];
+    /**
+     * How much of the app's own theme the chart adopts (P-11).
+     *
+     * Read from the DOM rather than passed in as values, because that is what lets a chart follow a
+     * theme the user switches while it is on screen. See `theme/atlasTokens.ts`.
+     */
+    atlasTheme: AtlasThemeMode;
     heightMode: HeightMode;
     heightPixels: number;
     aspectRatio: number;
@@ -75,12 +84,23 @@ export function NivoChart(props: NivoChartProps): ReactElement {
         staticConfiguration,
         dynamicConfiguration,
         functionProperties,
+        atlasTheme,
         emptyMessage,
         ariaLabel,
         className,
         style,
         tabIndex
     } = props;
+
+    /*
+     * The root element is the reference point for theming, not `document.documentElement`.
+     *
+     * Custom properties inherit, so reading from here picks up the app's `:root` theme when nothing
+     * overrides it — and picks up a scoped override when something does, which is how a chart inside
+     * a dark panel on a light page comes out dark without being told.
+     */
+    const rootRef = useRef<HTMLDivElement>(null);
+    const atlas = useAtlasTheme(rootRef, atlasTheme !== "off");
 
     /*
      * Memoised on the raw JSON string, not on the prop object.
@@ -114,9 +134,44 @@ export function NivoChart(props: NivoChartProps): ReactElement {
      * handler that is configured and does nothing is exactly the class of silent failure this widget
      * keeps running into, so it is placed where nothing can reach it.
      */
+    /*
+     * The Atlas theme is the BOTTOM layer, underneath the static and dynamic configuration.
+     *
+     * Which is the opposite of where the click handler goes, and for the opposite reason. A theme
+     * derived from the app is a *default* — it exists so nobody has to write one — so anything the
+     * modeller typed must win over it. A click handler is a binding to a microflow, so nothing
+     * typed as JSON should be able to displace it.
+     *
+     * `theme` alone is deep-merged; see `mergeTheme`. Everything else, `colors` included, replaces
+     * wholesale — a modeller who sets `colors` wants their palette, not theirs blended with Atlas's.
+     */
+    const themed = useMemo(() => {
+        if (!atlas) {
+            return merged.configuration;
+        }
+
+        const base: Record<string, unknown> = {};
+        if (atlas.theme) {
+            base.theme = atlas.theme;
+        }
+        if (atlasTheme === "full" && atlas.palette && CHART_PALETTE_SUPPORT[chartType]) {
+            base.colors = atlas.palette;
+        }
+
+        const result: Record<string, unknown> = { ...base, ...merged.configuration };
+
+        // A `theme` supplied as a function property is not an object to merge into — the escape
+        // hatch wins outright, as it does everywhere else.
+        if (atlas.theme && isPlainObject(merged.configuration.theme)) {
+            result.theme = mergeTheme(atlas.theme, merged.configuration.theme);
+        }
+
+        return result;
+    }, [atlas, atlasTheme, chartType, merged.configuration]);
+
     const configuration = useMemo(
-        () => (onDatumClick ? { ...merged.configuration, onClick: onDatumClick } : merged.configuration),
-        [merged.configuration, onDatumClick]
+        () => (onDatumClick ? { ...themed, onClick: onDatumClick } : themed),
+        [themed, onDatumClick]
     );
 
     const problems = [
@@ -168,6 +223,7 @@ export function NivoChart(props: NivoChartProps): ReactElement {
 
     return (
         <div
+            ref={rootRef}
             className={["aq-nivo", className].filter(Boolean).join(" ")}
             style={containerStyle}
             tabIndex={tabIndex}

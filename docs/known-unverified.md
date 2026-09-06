@@ -6,7 +6,106 @@ be built, linted, unit-tested and packaged outside Mendix; almost none of it can
 Keep this file honest. A claim moves out of here when something was observed, not when it seems
 likely.
 
-Status as of **2026-09-04**, after the renderer split, the two check() defect fixes, and the first runtime smoke test of the gallery.
+Status as of **2026-09-06**, after Atlas theming (P-11). Before that: the renderer split, the two
+check() defect fixes, the first runtime smoke test of the gallery, code splitting, datasource mode
+and interactivity.
+
+---
+
+## Added 2026-09-06 — Atlas theming (P-11) is BUILT and PART-VERIFIED
+
+**Partially confirmed in the running app, 2026-09-06.** With the P-11 `.mpk` installed and the
+project reopened, the developer reported that chart colours "align to the theme" on the gallery
+pages. That is a real observation and it settles the load-bearing question: **the token read, the
+colour resolution and the palette all work end to end in a browser.** Whatever `color-mix()`
+resolution does, it produces colours Nivo can draw with.
+
+It is deliberately recorded as *part*-verified rather than verified. It is one look at the default
+mode, in one renderer, in one theme — which is exactly the shape of evidence that produced the wrong
+"the other sixteen follow from these two" claim about interactivity. **What was seen is that the
+palette applies. What was not seen is any of the four checks below.**
+
+The rest of this section is unverified in a specific and awkward way: **every part of it that could
+fail silently, fails silently.** A theme that does not apply looks exactly like a chart that was
+never themed, and this widget's default is now `Full` — so a reader who does not know it was
+supposed to change will not notice that it did not. The colours looking right is not evidence about
+the Canvas font, the theme switch, the tooltip or the palette exclusions; those are independent
+mechanisms that happen to share a property.
+
+**What the repository does prove.** The pure half — Atlas tokens in, Nivo theme and palette out,
+plus the theme deep-merge — has unit tests in `src/theme/atlasTheme.spec.ts`. The palette-support
+table was read out of the installed `@nivo/*` 0.99 type declarations, one package at a time, the
+same way `CHART_DATA_SHAPE` was. `npm run prerelease` passes, the release entry bundle is 26,559
+bytes against 17,433 before, and the chunk count is unchanged at 100 — so theming did not undo the
+code splitting.
+
+**What it cannot prove, and why not testing it here was deliberate.** Reading the tokens needs a
+real CSS engine and a real canvas. jsdom's `getComputedStyle` does not evaluate `color-mix()`, and
+jsdom has no canvas — so a jsdom test of `readAtlasTokens` would pass against a resolver that
+returned the raw `color-mix(...)` string unchanged, which is precisely the bug the resolver exists
+to prevent. A test that cannot fail is worse than no test, because it gets quoted as evidence.
+
+### RE-CHECK — the four that remain
+
+Numbering kept from the original five so that a reference to "check 3" does not move. **Check 1 (do
+the tokens resolve) and the SVG half of check 2 (does a chart look like the app) are answered** by
+the observation above — a palette that reaches the bars is a palette that resolved.
+
+**1. ANSWERED — the tokens resolve and the palette reaches the chart.** Still worth running once for
+the detail it gives, because it distinguishes two situations the eye cannot:
+
+```js
+getComputedStyle(document.querySelector(".aq-nivo")).getPropertyValue("--brand-primary-600")
+```
+
+A `color-mix(...)` string means the two-step resolution is load-bearing and the comment in
+`atlasTokens.ts` is right. An `rgb(...)` string means the browser resolved it before we did, the
+resolution is belt-and-braces, and that comment should be softened rather than left overstating its
+own necessity.
+
+**2. PART-ANSWERED — check the Canvas half.** The SVG side is confirmed. **The failure mode still
+open is a chart that looks right in SVG and wrong in Canvas** — Nivo's Canvas renderers build a font
+string as `` `${fontSize}px ${fontFamily}` ``, so a fontSize that kept its unit gives `14pxpx` and
+the canvas silently falls back to a 10px default in a sans-serif that is not the app's. Colours
+would look perfect throughout. Open one Canvas chart (Bar, Line, Heat Map and Calendar all have one)
+and compare its tick labels to the SVG version's: same size, same face.
+
+**3. Does it follow a theme switch?** This app ships `:root.theme-dark` and `:root.theme-neutral`
+but nothing wires a switcher yet, so drive it from the console:
+
+```js
+document.documentElement.classList.add("theme-dark")     // then remove it
+```
+
+Axis text, gridlines, tooltip and series colours should all change **without a reload and without
+the chart re-animating from scratch**. A full re-animation means the token comparison in
+`useAtlasTheme` is not doing its job, and every unrelated class change on `<html>` is re-rendering
+the chart.
+
+**4. Does the tooltip read correctly in dark?** The tooltip container takes `--bg-color-secondary`
+and `--font-color-default`, which is the pairing most likely to come out dark-on-dark if an app
+declares one and not the other.
+
+**5. Does the palette reach the eighteen chart types that should have it, and not the eight that
+should not?** Calendar is the one to look at: it must keep its own value ramp rather than turning
+into four unrelated hues. That is the check that proves `CHART_PALETTE_SUPPORT` is wired, not merely
+written.
+
+### Known unknowns, stated rather than assumed
+
+- **Which colour syntax the browser returns for an evaluated `color-mix()`** is assumed to be
+  something d3-color cannot parse, based on Chrome serialising it as `color(srgb ...)`. The canvas
+  normalisation makes the answer not matter — but the *claim* in the source comment is reasoned, not
+  observed.
+- **`MutationObserver` on `<html>` and `<body>` is assumed to be where an Atlas theme class lands.**
+  It is where this app's `_theme-dark.scss` expects it (`:root.theme-dark`). An app that themes by
+  swapping a stylesheet, or by a class on some mid-page container, would not be seen.
+- **Nothing has confirmed that Nivo ignores a `colors` array on a chart type that does not declare
+  the prop.** The reasoning is that a React component destructures what it wants; the palette is
+  withheld from those eight anyway, so this is a second line of defence rather than the first.
+- **The page-editor preview is not themed.** `StaticChart` is a static stand-in and does not read
+  the tokens. Studio Pro's page editor is not an Atlas app, so there is little to read — but it does
+  mean the preview will not show the palette the runtime uses.
 
 ---
 
