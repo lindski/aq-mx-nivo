@@ -1,39 +1,13 @@
 import { ReactElement, useEffect, useMemo } from "react";
 import { ValueStatus } from "mendix";
-import { Big } from "big.js";
 
 import { AqNivoContainerProps } from "../typings/AqNivoProps";
 import { NivoChart } from "./components/NivoChart";
 import { resolveChartType } from "./charts/resolveChartType";
+import { toChartValue } from "./data/attributeValue";
 import { projectRows, RowMapping } from "./data/projectRows";
 import { resolveRowKey } from "./charts/clickTarget";
 import { ensureStyles } from "./ui/styles";
-
-/**
- * Mendix attribute value -> plain JSON value.
- *
- * This exists for one reason, and it is not tidiness. **Decimal, Integer and Long all arrive as
- * big.js instances**, and big.js defines `toJSON` as `toString`, so a `Big` serialises to the JSON
- * *string* `"3.5"` rather than the number `3.5`. Nivo then builds an **ordinal** scale where a linear
- * one was meant: the axis ticks become evenly spaced labels in row order, the bars all come out the
- * same height, and nothing anywhere reports an error. Verified against big.js directly, not assumed.
- *
- * Precision: `Number()` cannot hold a Long beyond 2^53. That is accepted rather than worked around —
- * a chart pixel is worth far less than an integer ulp, and every downstream Nivo scale is float
- * arithmetic regardless.
- *
- * Dates are deliberately left alone: `Date` has its own `toJSON`, which yields ISO 8601, and that is
- * the form Nivo's time scales parse.
- */
-function toPlainValue(value: string | boolean | Date | Big | undefined): unknown {
-    if (value === undefined || value === null) {
-        return undefined;
-    }
-    if (typeof value === "object" && !(value instanceof Date) && "toNumber" in value) {
-        return Number(value.toString());
-    }
-    return value;
-}
 
 /**
  * The Mendix adapter — **the only file in this widget permitted to import `mendix`**.
@@ -152,10 +126,21 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
         const rows = items.map(item => {
             const row: Record<string, unknown> = {};
             (dataColumns ?? []).forEach((column, index) => {
-                row[String(index)] = toPlainValue(column.columnAttribute?.get(item)?.value);
+                const attribute = column.columnAttribute;
+                const cell = attribute?.get(item);
+                row[String(index)] = toChartValue({
+                    type: attribute?.type,
+                    value: cell?.value,
+                    displayValue: cell?.displayValue
+                });
             });
             if (seriesAttribute) {
-                row.__series = toPlainValue(seriesAttribute.get(item)?.value);
+                const seriesCell = seriesAttribute.get(item);
+                row.__series = toChartValue({
+                    type: seriesAttribute.type,
+                    value: seriesCell?.value,
+                    displayValue: seriesCell?.displayValue
+                });
             }
             return row;
         });
