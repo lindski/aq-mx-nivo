@@ -442,7 +442,26 @@ npm run release    # dist/<version>/com.auraq.AqNivo.mpk — does NOT copy into 
 **The Mendix test app is a separate repository**, on Team Server; this one is on GitHub. Only the
 built `.mpk` crosses between them, and it is committed from the app side. Point the build at the test
 app with **`MX_PROJECT_PATH`** rather than editing `config.projectPath` — the environment variable
-wins, and needs no committed change.
+wins, and needs no committed change:
+
+```bash
+MX_PROJECT_PATH="/path/to/the/mendix/app" npm run build
+```
+
+> **Without it, `npm run build` succeeds and copies the `.mpk` nowhere useful.** `config.projectPath`
+> defaults to `./tests/testProject`, a local stub, so the build reports success, writes
+> `dist/<version>/com.auraq.AqNivo.mpk`, and leaves the app's `widgets/` folder untouched. Studio Pro
+> then keeps serving the previous build — and because the symptom is "my change did not appear", the
+> natural next move is to blame the XML cache and restart, which cannot help and hides the real cause.
+> **Check the `.mpk` timestamp in the app's `widgets/` folder before blaming the cache**, and confirm
+> the text is really in there:
+>
+> ```bash
+> unzip -p <app>/widgets/com.auraq.AqNivo.mpk "*AqNivo.xml" | grep "<some new text>"
+> ```
+>
+> A harmless `cp: no such file or directory: dist/tmp/widgets/*` in the build log is a separate PWT
+> step copying unpacked files for hot reload; the `.mpk` is zipped, not copied, so it is unaffected.
 
 **Studio Pro caches a widget's parsed XML and its design-time JS for the life of the open project.**
 After any rebuild that changes a property, a description or `check()`, close and reopen the project,
