@@ -65,6 +65,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
         aspectRatio,
         emptyMessage,
         ariaLabel,
+        renderDataTable,
         class: className,
         style,
         tabIndex
@@ -243,6 +244,7 @@ export function AqNivo(props: AqNivoContainerProps): ReactElement {
             aspectRatio={aspectRatio ? Number(aspectRatio.toString()) : 1.6}
             emptyMessage={textOf(emptyMessage) ?? DEFAULT_EMPTY_MESSAGE}
             ariaLabel={textOf(ariaLabel)}
+            renderDataTable={renderDataTable}
             /*
              * class, style and tabIndex are applied to the root element.
              *

@@ -26,6 +26,8 @@ toolbox usable and makes the chart type a property rather than a re-placement.
   eighteen of them, with attributes mapped onto chart keys.
 - **Click through to a microflow**, receiving the Mendix row the datum was drawn from.
 - **Matches the app's Atlas theme** by default, live — including a theme the user switches.
+- **Accessible** — a labelled chart plus an optional visually-hidden data table, which is the only
+  route to the values on a Canvas chart.
 - **Layered configuration** — static (typed into the widget), dynamic (bound to an attribute) and
   function properties, merged in that order, so a later layer overrides an earlier one.
 
@@ -277,7 +279,38 @@ throw.
 
 **A chart is an image to assistive technology: without this it is announced as nothing at all.** Say
 what is being measured and over what — "Claims volume by month, split by peril", not "bar chart".
-This is the *only* accessible content a Canvas chart has.
+
+The label goes on the chart element itself as `role="img"`, deliberately **not** on the widget's root.
+That role makes an element's whole subtree presentational, so anything inside it is not exposed —
+which on the root would silently swallow the loading state's `aria-live`, the configuration warnings'
+`role="status"`, and the data table below.
+
+### Include data table (`renderDataTable`)
+
+**The label says what the chart is about; this is what carries the numbers.** Without it a
+screen-reader user gets the topic and not one value. The table is rendered after the chart, hidden
+with the clip-rect technique rather than `display: none` — which would remove it from the
+accessibility tree as well as from view, leaving it doing nothing while looking correct.
+
+**It matters most with Canvas**, which puts no text in the DOM at all: no tick labels, no legend, no
+value labels. The accessible label is then the *entire* accessible content, and a browser text search
+finds nothing either. `check()` warns when Canvas is selected without it.
+
+**Only tabular shapes can be rendered as tables**, and the widget decides from the data rather than
+from the chart type — a Bar bound to something unexpected is no more tabular than a Tree Map:
+
+| Shape | Result |
+|---|---|
+| A flat array of objects | One row per element, columns from the union of keys |
+| A series array (`[{ id, data: [...] }]`) | Flattened to one row per point, series id as the first column |
+| Hierarchy, graph, Chord's matrix, Geo Map's geography | **Nothing.** `check()` warns at design time |
+
+Declining is deliberate. A hierarchy flattened into rows by an invented convention reads as
+authoritative and is not, and for those chart types the accessible label is the alternative form —
+so make it carry the point the chart is making rather than describing its shape.
+
+Long datasets are capped at 500 rows and the table **says how many it omitted**. A table that simply
+stops looks like data that simply stops, and the reader has no way to tell the difference.
 
 ---
 

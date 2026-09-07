@@ -88,6 +88,7 @@ export interface AqNivoContainerProps {
     aspectRatio: Big;
     emptyMessage?: DynamicValue<string>;
     ariaLabel?: DynamicValue<string>;
+    renderDataTable: boolean;
 }
 
 export interface AqNivoPreviewProps {
@@ -119,4 +120,5 @@ export interface AqNivoPreviewProps {
     aspectRatio: number | null;
     emptyMessage: string;
     ariaLabel: string;
+    renderDataTable: boolean;
 }

@@ -189,6 +189,10 @@
                 <caption>Accessible label</caption>
                 <description>Describes what the chart shows, for screen readers — without it the chart is announced as nothing at all. Say what is measured and over what, e.g. "Claims volume by month, split by peril", not "bar chart".</description>
             </property>
+            <property key="renderDataTable" type="boolean" defaultValue="false">
+                <caption>Include data table</caption>
+                <description>Also render the chart's data as a visually-hidden table, so a screen reader gets the numbers rather than only the label. Strongly recommended with the Canvas renderer, which puts no text in the DOM at all. Only tabular shapes can be rendered — hierarchies, graphs, Chord's matrix and Geo Map's geography produce nothing.</description>
+            </property>
         </propertyGroup>
         <propertyGroup caption="Common">
             <systemProperty key="Name"/>

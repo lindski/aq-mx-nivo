@@ -490,5 +490,59 @@ export function check(values: AqNivoPreviewProps): Problem[] {
         });
     }
 
+    const a11yChartType = values.chartType as ChartType;
+    const a11yLabel = CHART_LABELS[a11yChartType] ?? values.chartType;
+    /*
+     * Whether a data table is even possible. `object` is a hierarchy or a graph; `features` is Geo
+     * Map's geography. Chord is declared `array` but is a numeric matrix, so it is named explicitly —
+     * a matrix is technically rectangular, but without the `keys` from the configuration its rows and
+     * columns are unlabelled, and an unlabelled grid of numbers is not an accessible alternative.
+     */
+    const tabular = CHART_DATA_SHAPE[a11yChartType] === "array" && a11yChartType !== "Chord";
+
+    /*
+     * A data table asked for on a shape that has none.
+     *
+     * Warning rather than error: the chart type is edited in this same sheet, so this is as likely to
+     * be mid-edit as wrong, and the property costs nothing while it produces nothing. Reported
+     * against `renderDataTable` — the property that will not do what it says — rather than against
+     * `chartType`, per Rule 2.
+     */
+    if (values.renderDataTable && !tabular) {
+        problems.push({
+            property: "renderDataTable",
+            severity: "warning",
+            message:
+                `${a11yLabel} data is not a table — it is ` +
+                (CHART_DATA_SHAPE[a11yChartType] === "features"
+                    ? "a geographic feature collection"
+                    : a11yChartType === "Chord"
+                    ? "a numeric matrix whose rows and columns are unlabelled"
+                    : "a hierarchy or a graph") +
+                " — so no table is rendered and this setting has no effect. The accessible label is the alternative form for this chart type; make it carry the point the chart is making."
+        });
+    }
+
+    /*
+     * Canvas with no table.
+     *
+     * The sharpest accessibility constraint this widget has, and the least visible: SVG and HTML put
+     * tick labels, legends and value labels in the DOM, so something is readable even without a
+     * table. Canvas puts NOTHING there — the chart is one bitmap — so the accessible label becomes
+     * the entire accessible content, and a browser text search finds nothing either.
+     *
+     * Reported against `renderer`, because choosing Canvas is the decision that made it true, and
+     * only where a table is actually available — telling someone to switch on a setting that cannot
+     * work for their chart type would be reporting a consequence, not a cause (Rule 3).
+     */
+    if (values.renderer === "Canvas" && !values.renderDataTable && tabular) {
+        problems.push({
+            property: "renderer",
+            severity: "warning",
+            message:
+                "Canvas puts no label text in the DOM at all, so a screen reader and a browser text search get only the Accessible label — not one value. Switch on Include data table, or use the SVG renderer unless the element count really demands Canvas."
+        });
+    }
+
     return problems;
 }

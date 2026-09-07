@@ -2,6 +2,7 @@ import { CSSProperties, Fragment, ReactElement, Suspense, useMemo, useRef } from
 
 import { renderChart } from "../charts/registry";
 import { CHART_DATA_SHAPE, CHART_PALETTE_SUPPORT, ChartType, RendererMode } from "../charts/chartTypes";
+import { DataTable, tabulate } from "../data/dataTable";
 import { isEmptyData, parseChartData } from "../data/parseJson";
 import { mergeCacheKey, mergeConfiguration } from "../config/merge";
 import { FunctionPropertyDefinition } from "../config/functionProps";
@@ -68,6 +69,14 @@ export interface NivoChartProps {
     aspectRatio: number;
     emptyMessage: string;
     ariaLabel?: string;
+    /**
+     * Render the chart's data as a visually-hidden table as well (P-12).
+     *
+     * `aria-label` says what the chart is about; this is what carries the numbers. It matters most on
+     * Canvas, which puts no text in the DOM at all, so without it the label is the entire accessible
+     * content. Not every data shape is a table — see `data/dataTable.ts`.
+     */
+    renderDataTable?: boolean;
     className?: string;
     style?: CSSProperties;
     tabIndex?: number;
@@ -87,6 +96,7 @@ export function NivoChart(props: NivoChartProps): ReactElement {
         atlasTheme,
         emptyMessage,
         ariaLabel,
+        renderDataTable,
         className,
         style,
         tabIndex
@@ -110,6 +120,15 @@ export function NivoChart(props: NivoChartProps): ReactElement {
      * re-runs its transitions continuously. That was C-02, and it is why the cache key is a string.
      */
     const data = useMemo(() => parseChartData(dataJson, chartType), [dataJson, chartType]);
+
+    /*
+     * Built only when asked for. The table is a second pass over the whole dataset and a second copy
+     * of it in the DOM, which is exactly the cost that makes it a property rather than the default.
+     */
+    const table = useMemo(
+        () => (renderDataTable && data.ok ? tabulate(data.value) : undefined),
+        [renderDataTable, data]
+    );
 
     const configurationKey = mergeCacheKey({ staticConfiguration, dynamicConfiguration, functionProperties });
     const merged = useMemo(
@@ -206,7 +225,22 @@ export function NivoChart(props: NivoChartProps): ReactElement {
                 resetKey={`${chartType}|${renderer}|${dataJson ?? ""}|${configurationKey}`}
                 fallback={message => state("error", "This chart could not be drawn.", message)}
             >
-                <div className="aq-nivo__chart">
+                {/*
+                 * `role="img"` belongs HERE, on the drawing, and not on the root.
+                 *
+                 * The role makes an element's whole subtree presentational, so anything inside it is
+                 * not exposed to assistive technology. On the root that silently swallowed three
+                 * things that exist to be announced: the loading state's `aria-live`, the warnings'
+                 * `role="status"`, and — the reason it was noticed — the data table below.
+                 *
+                 * Scoping it to the chart keeps the label attached to the thing it describes and
+                 * leaves every sibling readable.
+                 */}
+                <div
+                    className="aq-nivo__chart"
+                    role={ariaLabel ? "img" : undefined}
+                    aria-label={ariaLabel || undefined}
+                >
                     {/*
                      * The chart's Nivo package is loaded on demand (B-01), so the element suspends
                      * until its chunk arrives. The fallback is the loading state rather than the
@@ -227,10 +261,13 @@ export function NivoChart(props: NivoChartProps): ReactElement {
             className={["aq-nivo", className].filter(Boolean).join(" ")}
             style={containerStyle}
             tabIndex={tabIndex}
-            role={ariaLabel ? "img" : undefined}
-            aria-label={ariaLabel || undefined}
         >
             {body()}
+            {/*
+             * The tabular alternative (P-12), a sibling of the chart rather than a child of it —
+             * inside `role="img"` it would not be exposed at all. See the comment on that role.
+             */}
+            {renderDataTable && <DataTableAlternative table={table} label={ariaLabel} />}
             {/*
              * The warnings are non-fatal — a function property that did not compile costs its own
              * property, not the chart — so they are announced rather than drawn over the chart.
@@ -240,6 +277,53 @@ export function NivoChart(props: NivoChartProps): ReactElement {
                     {merged.warnings.join(" ")}
                 </span>
             )}
+        </div>
+    );
+}
+
+/**
+ * The chart's data as a visually-hidden table.
+ *
+ * Hidden with the clip-rect technique rather than `display: none` or `visibility: hidden`, both of
+ * which remove an element from the accessibility tree as well as from view — which would leave this
+ * doing nothing at all, silently and while looking correct.
+ *
+ * Renders nothing when the shape is not tabular. That is deliberate rather than a fallback: a
+ * hierarchy or a graph flattened into rows reads as authoritative and is not, and `check()` warns at
+ * design time for the chart types where it can never produce anything.
+ */
+function DataTableAlternative({ table, label }: { table?: DataTable; label?: string }): ReactElement | null {
+    if (!table) {
+        return null;
+    }
+    return (
+        <div className="aq-nivo__sr-only">
+            <table>
+                <caption>{label ? `${label} — data table` : "Chart data"}</caption>
+                <thead>
+                    <tr>
+                        {table.columns.map(column => (
+                            <th key={column} scope="col">
+                                {column}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {table.rows.map((row, index) => (
+                        <tr key={index}>
+                            {row.map((value, column) => (
+                                <td key={column}>{value}</td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            {/*
+             * Said out loud rather than left implicit. A table that simply stops looks like data that
+             * simply stops, and the reader has no way to tell the difference.
+             */}
+            {table.omitted > 0 && <p>{`${table.omitted} further rows are not listed.`}</p>}
         </div>
     );
 }
