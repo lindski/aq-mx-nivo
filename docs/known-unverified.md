@@ -195,18 +195,41 @@ about the opacity. Their presence is in fact evidence that tooltips are wired.
 of error as the retracted "Voronoi only draws 4 paths" finding — the measurement was wrong, not the
 chart. Solve the number back to the data before calling it a defect.
 
-### Still open after the sweep — Network draws in black (test-app data, not the widget)
+### CLOSED 2026-09-07 — Network's black nodes, and Choropleth's legend
 
-Network is geometrically **correct**: 7 nodes at per-node radii 12/9/8/6/6/5/5 — so the `nodeSize`
-function property works and the R-03 breakage is genuinely fixed — 8 links with real coordinates,
-**0 NaN attributes**, 0 console errors. But every node and link renders `#000000`.
+Both were **test-app seed data, not the widget**, and both are fixed and confirmed in the running app.
 
-That is the seed data, not the theme. `CHART_PALETTE_SUPPORT.Network` is `false` and correctly so:
-Network takes `nodeColor`/`linkColor`, not a `colors` array, and `PartialTheme` carries no colours.
-Nivo's default `nodeColor` reads `node.color`, the sample supplies none, and the fallback is black.
-The fix belongs in the gallery seed — a `color` per node, or a `nodeColor` function property, which
-would make Network a second demonstration of function properties alongside `nodeSize`. Logged in the
-test app's plan; nothing to change in the widget.
+**Network** rendered every node and link `#000000`, because Nivo's default `nodeColor` reads
+`node.color` and the sample supplied none. In dark mode that was black on `rgb(31, 37, 60)` — gone
+entirely. Fixed by giving each node a `color` and reading it back through the marker registry rather
+than hardcoding a `colors` array, which makes Network the gallery's second demonstration of function
+properties alongside `nodeSize`:
+
+```json
+{ "nodeColor": "@fn:prop:color",
+  "nodeBorderColor": { "from": "color", "modifiers": [["darker", 0.8]] },
+  "linkColor": "#8c93a3" }
+```
+
+Confirmed by solving the rendered geometry back to the seed: three clusters at `rgb(76, 126, 243)`,
+`rgb(47, 163, 107)` and `rgb(224, 160, 32)` — exactly `#4c7ef3` / `#2fa36b` / `#e0a020` — on the
+right members; borders derived **per node** from each node's own fill by the `darker` modifier
+(`rgb(57, 95, 183)` under the blue, and two others); all 8 links at `rgb(140, 147, 163)`; radii still
+12/9/8/6/6/5/5, so `@fn:prop:size` did not regress; 0 NaN.
+
+Since Network takes no palette, those colours cannot follow the theme — they are deliberately
+mid-tones chosen to read on a light or a dark ground, and the sample's description now says so.
+
+**Choropleth's legend** was hardcoded `itemTextColor: "#444444"` with a `#000000` hover effect,
+copied from Nivo's own docs example, in `resources/nivogallery/geo/choropleth_config.txt` rather than
+in a microflow. Both keys removed. All **9 of 9** legend labels now follow a theme switch,
+`rgb(74, 74, 76)` → `rgb(227, 227, 229)` — which is the themed `--font-color-default`, not the old
+`#444`, so `theme.legends.text.fill` is reaching them exactly as the precedence chain predicted.
+
+**The general lesson is in the README** (Colour and theming → Limitations and workarounds), because
+it is the trap most likely to recur: any `itemTextColor` present in a configuration is one somebody
+typed, since the themed value is what you get when the key is absent — and `check()` warns about
+`colors` but not about this.
 
 ### Known unknowns, stated rather than assumed
 
