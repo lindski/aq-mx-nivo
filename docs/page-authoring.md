@@ -42,3 +42,24 @@ entirely plausible-looking. No schema can express that, so the reference must.
 but not in the directory is unreachable in practice.
 
 No `gate` applies. Nivo is MIT.
+
+## The reference now carries more weight than it did
+
+**As of the description-shortening pass, `AqNivo.xml`'s `<description>` text is one or two sentences
+per property.** It is hover text in a property sheet, where a paragraph is unreadable, and the detail
+moved to [README.md](../README.md#property-reference).
+
+That is a deliberate trade with a cost attached, and this file is where the cost lands. Mendix copies
+each description **verbatim** into the auto-schema, so shortening them moved detail *out* of the one
+path a page-authoring agent reads automatically. Nothing else fills that gap.
+
+So when Part B is written:
+
+- **Carry the silent-failure facts in full.** The Unlimited-length requirement on both String
+  attributes, the pre-aggregation requirement on the data source, that a click needs Data source
+  mode, and that a container of zero height renders nothing with no error. Each of these fails
+  *silently* and none is expressible in the schema.
+- **Carry the two lists of eight, and the fact that they differ.** The chart types with no data-source
+  shape and the chart types with no palette overlap in only three places, and an agent that conflates
+  them will confidently recommend an impossible binding.
+- The README is the source to lift from; keep the two in step or say plainly which one wins.

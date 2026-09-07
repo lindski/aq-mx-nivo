@@ -4,13 +4,13 @@
         xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
     <name>Aq Nivo</name>
-    <description>Nivo data visualisation — 26 chart types behind one property surface. Choose a chart type, bind a String attribute holding the data as JSON, and configure the chart with static JSON, an attribute holding JSON, or both.</description>
+    <description>Nivo data visualisation — 26 chart types behind one property surface. Pick a chart type, bind the data, and configure the chart with JSON. Full property reference, data shapes and theming notes: https://github.com/lindski/aq-mx-nivo#property-reference</description>
     <icon>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</icon>
     <properties>
         <propertyGroup caption="Data">
             <property key="dataMode" type="enumeration" defaultValue="json">
                 <caption>Data from</caption>
-                <description>Where the chart's data comes from. JSON string is the original mode and the only one that supports every chart type: the app builds the payload in the shape Nivo expects and binds it to a String attribute. Data source binds an ordinary Mendix list instead and maps attributes to chart keys below, which is how the rest of Mendix works and is the only mode in which a click can carry the row it fired on to a microflow. Data source cannot express a tree, a graph, a numeric matrix or GeoJSON, so eight chart types are JSON only; the property sheet says which when you pick one.</description>
+                <description>Where the chart's data comes from. JSON string supports every chart type; Data source binds an ordinary Mendix list and is the only mode in which a click can carry its row to a microflow. Eight chart types are JSON only — the property sheet says which when you pick one.</description>
                 <enumerationValues>
                     <enumerationValue key="json">JSON string</enumerationValue>
                     <enumerationValue key="datasource">Data source</enumerationValue>
@@ -18,18 +18,18 @@
             </property>
             <property key="chartDataJson" type="attribute" required="false">
                 <caption>Chart data</caption>
-                <description>Used when Data from is JSON string. String attribute holding this chart's data as JSON, in the shape the selected chart type expects — see nivo.rocks for the shape per chart type. The attribute must be set to Unlimited length in the domain model: Mendix defaults a String attribute to 200 characters and truncates it silently, which turns valid chart JSON into malformed JSON. The chart then shows a parse error for a reason that is invisible from the page, and reads as a broken data source rather than a too-short column.</description>
+                <description>Used when Data from is JSON string. String attribute holding this chart's data as JSON, in the shape the chart type expects. The attribute must be Unlimited length: Mendix truncates the 200-character default silently, which turns valid chart JSON into malformed JSON.</description>
                 <attributeTypes>
                     <attributeType name="String" />
                 </attributeTypes>
             </property>
             <property key="chartDataSource" type="datasource" isList="true" required="false">
                 <caption>Chart rows</caption>
-                <description>Used when Data from is Data source. The list to draw, one row per data point. IMPORTANT: give it rows that are already at chart granularity — a Mendix data source cannot be asked for grouped or aggregated rows, so aggregate in a microflow and return the result. The widget never aggregates and never pages: it draws every row it is given, because charting one page and presenting it as the whole is not slow, it is wrong, and it looks entirely plausible. A chart is aggregated by nature, so tens or low hundreds of rows is the expected size; binding a raw transaction table will be slow and the chart will be unreadable.</description>
+                <description>Used when Data from is Data source. The list to draw, one row per data point, already at chart granularity. The widget never aggregates and never pages — aggregate in a microflow first, or a page of rows is drawn as though it were the whole.</description>
             </property>
             <property key="dataColumns" type="object" isList="true" required="false">
                 <caption>Columns</caption>
-                <description>Used when Data from is Data source. Maps each attribute onto the key the chart expects, so no JSON is written anywhere. A Pie needs id and value; a Bar needs the index key plus one key per series; a point chart needs x and y. See nivo.rocks for the keys a given chart type reads. Attributes that are not mapped are simply left out of the datum.</description>
+                <description>Used when Data from is Data source. Maps each attribute onto the key the chart expects, so no JSON is written anywhere. Attributes that are not mapped are left out of the datum.</description>
                 <properties>
                     <propertyGroup caption="Column">
                         <property key="columnAttribute" type="attribute" dataSource="../chartDataSource" required="false">
@@ -47,14 +47,14 @@
                         </property>
                         <property key="outputKey" type="string" required="false">
                             <caption>Chart key</caption>
-                            <description>The key this attribute becomes in the chart datum — id, value, x, y, or a series name. Leave it empty to use the attribute's own name, which is convenient when the domain model already matches. Two columns writing the same key is reported rather than allowed: one would silently overwrite the other and the chart would draw with a column missing.</description>
+                            <description>The key this attribute becomes in the chart datum — id, value, x, y, or a series name. Leave empty to use the attribute's own name. Two columns writing the same key is reported rather than allowed.</description>
                         </property>
                     </propertyGroup>
                 </properties>
             </property>
             <property key="seriesAttribute" type="attribute" dataSource="chartDataSource" required="false">
                 <caption>Series</caption>
-                <description>Used when Data from is Data source, and only by the chart types that draw several series — Line, Scatter Plot, Heat Map, Radial Bar, Bump and Area Bump. The rows are split on this attribute, and each distinct value becomes one series carrying its own points, in the order the data source returned them. Splitting is not aggregating: no row is combined with another, which is why it is allowed where summing is not. Leave it empty for every other chart type.</description>
+                <description>Used when Data from is Data source, and only by the chart types that draw several series. Rows are split on this attribute, one series per distinct value. Leave empty for every other chart type.</description>
                 <attributeTypes>
                     <attributeType name="String" />
                     <attributeType name="Boolean" />
@@ -68,13 +68,13 @@
         <propertyGroup caption="Events">
             <property key="onClickAction" type="action" dataSource="chartDataSource" required="false">
                 <caption>On click</caption>
-                <description>Runs when a datum is clicked, receiving the row it was drawn from — so a chart becomes a way into the data rather than a picture of it. Requires Data from to be Data source: in JSON string mode there is no row to pass, and a click that arrives with nothing is worse than no click at all. Note what the microflow gets: the Mendix object behind the datum, not the datum. A click on a stacked bar segment or a line point identifies one row, and that row is what arrives. Two ceilings worth knowing before you design around this. Charts whose click is about a whole series rather than one row — Stream, Bump and Area Bump — cannot identify a single row, so nothing fires there. And leaving this empty is meaningful rather than merely unset: the chart is then rendered with no click handler at all, so it does not take on the pointer cursor and hover affordances that would tell a user it can be clicked.</description>
+                <description>Runs when a datum is clicked, receiving the Mendix row it was drawn from. Requires Data from to be Data source. Nothing fires on Stream, Bump or Area Bump, whose clicks identify a series rather than a row. Leaving this empty also removes the chart's pointer cursor and hover affordances.</description>
             </property>
         </propertyGroup>
         <propertyGroup caption="Chart">
             <property key="chartType" type="enumeration" defaultValue="Bar">
                 <caption>Chart type</caption>
-                <description>Which Nivo chart to render. Each chart type expects its own data shape and accepts its own configuration properties, so changing this usually means changing the bound data as well. This names the chart's form only; how it is drawn is the Renderer property below. Before 2.0 these keys carried a Responsive prefix and folded in the drawing technology; an expression written against 1.x needs updating.</description>
+                <description>Which Nivo chart to render. Each chart type expects its own data shape and its own configuration properties, so changing this usually means changing the bound data too. This names the chart's form only; how it is drawn is the Renderer property below.</description>
                 <enumerationValues>
                     <enumerationValue key="AreaBump">Area Bump</enumerationValue>
                     <enumerationValue key="Bar">Bar</enumerationValue>
@@ -106,12 +106,12 @@
             </property>
             <property key="chartTypeExpression" type="expression" required="false">
                 <caption>Chart type (dynamic)</caption>
-                <description>Optional. An expression returning one of the chart type keys above, so the chart type can follow the data instead of being fixed when the page is built — a dashboard where the user picks a visualisation, or a chart whose form depends on the record. Where the key comes from a Mendix enumeration, getKey($currentObject/YourAttribute) returns it directly. When this is set and produces a recognised key it overrides Chart type; when it is empty the Chart type above is used. An unrecognised value is not silently ignored: the widget shows an error naming the value it was given, because a chart that quietly renders the wrong type is worse than one that says it cannot.</description>
+                <description>Optional. An expression returning one of the chart type keys above, so the chart type can follow the data rather than being fixed when the page is built. Overrides Chart type when it returns a recognised key. An unrecognised value is reported, not ignored.</description>
                 <returnType type="String" />
             </property>
             <property key="renderer" type="enumeration" defaultValue="Svg">
                 <caption>Renderer</caption>
-                <description>How the chart is drawn. SVG is the default and every chart type supports it. Canvas draws to a bitmap instead and is worth choosing where the element count is high enough that SVG becomes slow — large scatter plots, dense heat maps, long calendars. HTML exists for three hierarchical charts and lets their labels use ordinary text layout. Not every chart type has every renderer: fourteen have Canvas and three have HTML. Choosing one a chart type does not have is not an error — the chart is drawn as SVG instead, since the same chart is shown either way — but it is reported as a warning at design time so the choice is not silently doing nothing. Note the accessibility trade-off before choosing Canvas: SVG and HTML put every label in the DOM, where a screen reader and a browser text search can reach them, and Canvas puts none of them there — a Canvas chart is a single bitmap whose only accessible content is the Accessible label property. Prefer SVG unless the element count actually demands otherwise.</description>
+                <description>How the chart is drawn. SVG suits every chart type; Canvas is for high element counts; HTML exists for three hierarchical charts. An unsupported pair falls back to SVG with a design-time warning. Canvas puts no label text in the DOM, so screen readers and browser text search get only the Accessible label.</description>
                 <enumerationValues>
                     <enumerationValue key="Svg">SVG</enumerationValue>
                     <enumerationValue key="Canvas">Canvas</enumerationValue>
@@ -122,7 +122,7 @@
         <propertyGroup caption="Configuration">
             <property key="atlasTheme" type="enumeration" defaultValue="full">
                 <caption>Match app theme</caption>
-                <description>Whether the chart takes its look from the app's own Atlas theme, so it matches the pages around it without a theme block being written into every placement. The theme is read from the app's CSS variables while the chart is on screen, not copied at design time, so a chart follows a theme the user switches — light to dark — without a reload, and follows a theme scoped to part of a page. Full applies both halves: the chrome (font, text colour, axes, grid, legends, tooltip) and a series palette built from the brand colours. Chrome only applies the chrome and leaves series colour to Nivo, which is the better choice for a chart with many series — a palette built from four brand hues starts repeating at the ninth series, where Nivo's own schemes do not. Off applies nothing. Whatever is set here is the BOTTOM layer: any key in the static or dynamic configuration overrides it, and a theme block set there is merged into this one rather than replacing it, so adjusting one font size does not discard the rest of the app's look. Eight chart types have no categorical colour property and ignore the palette — Heat Map, Calendar and Time Range colour by value rather than by category, and Bullet, Choropleth, Geo Map, Network and Voronoi colour by other properties entirely; the property sheet says so when you pick one.</description>
+                <description>Whether the chart takes its look from the app's Atlas theme. Read live from the app's CSS variables, so the chart follows a theme the user switches without a reload. This is the BOTTOM layer: any key in the static or dynamic configuration overrides it. Eight chart types take no categorical palette and ignore Full.</description>
                 <enumerationValues>
                     <enumerationValue key="full">Full — chrome and colours</enumerationValue>
                     <enumerationValue key="chrome">Chrome only — keep Nivo colours</enumerationValue>
@@ -131,23 +131,23 @@
             </property>
             <property key="staticConfiguration" type="string" multiline="true" required="false">
                 <caption>Configuration (static)</caption>
-                <description>Chart configuration as a JSON object, typed in here and fixed at design time. Use this for everything that does not change at runtime — axes, legends, margins, colour schemes. Merged first, so a value set here is overridden by the same key in the dynamic configuration or in a function property. Must be a valid JSON object; it is checked at design time.</description>
+                <description>Chart configuration as a JSON object, fixed at design time. Merged first, so any key set here is overridden by the same key in the dynamic configuration or a function property. Must be a valid JSON object; it is checked at design time.</description>
             </property>
             <property key="dynamicConfiguration" type="attribute" required="false">
                 <caption>Configuration (dynamic)</caption>
-                <description>String attribute holding chart configuration as a JSON object, so configuration can be built or changed at runtime — a colour scheme the user picks, a legend that depends on the data. Optional: leave it unbound if all configuration is static. Merged after the static configuration, so it wins on any key set in both. The attribute must be Unlimited length for the same reason the chart data must be. Note that more is expressible here than it first appears: a d3-format string for valueFormat or an axis format, and {"scheme":"nivo"} or {"datum":"data.color"} for colour, all avoid needing a function property. Where a value must be read off each datum, use a named function marker: "@fn:prop:size" reads the size field, "@fn:prop:data.color" walks a path, and "@fn:truncate:20" shortens a long label. Markers resolve by name against a fixed set the widget ships, so they need no 'unsafe-eval' and, unlike function properties, they work at runtime. A configuration value that names a FIELD BARE is the one thing to be wary of — Nivo 0.99 removed that form, so "nodeSize":"size" is read as a value rather than an accessor and renders nothing while reporting nothing. "@fn:prop:size" is what it should now say.</description>
+                <description>String attribute holding chart configuration as a JSON object, so configuration can change at runtime. Merged after the static configuration, so it wins on any key set in both. Must be Unlimited length. Supports @fn: markers, such as @fn:prop:size, for values read off each datum.</description>
                 <attributeTypes>
                     <attributeType name="String" />
                 </attributeTypes>
             </property>
             <property key="functionProperties" type="object" isList="true" required="false">
                 <caption>Configuration (functions)</caption>
-                <description>The last resort, for the few Nivo properties that need a function no other route can supply. TRY THE OTHER TWO FIRST, both of which work at runtime through the dynamic configuration and carry none of the costs below. ONE: most formatting is already declarative in Nivo 0.99 — valueFormat and axis format take a d3-format string such as ".1%", "~s" or "%b %Y", and colour takes {"scheme":"nivo"}, an explicit palette array, or {"datum":"data.color"}. TWO: to read a value off each datum, use a named function marker in the configuration — "nodeSize": "@fn:prop:size" is the runtime-safe replacement for the "nodeSize": "size" field-name form that Nivo 0.99 removed, and "@fn:truncate:20" shortens a long label. Only when neither fits — a tooltip whose content is computed, say — write a body here. Merged last, so a function property wins over both a marker and a JSON value on the same key. The costs, and they are why this is last: the bodies are not type-checked, they run with whatever Nivo passes them, they cannot be set at runtime at all because this is a design-time list, and compiling them needs 'unsafe-eval' in the page's Content-Security-Policy.</description>
+                <description>Last resort, for the few Nivo properties needing a function no other route can supply. Try a d3-format string or an @fn: marker first — both work at runtime. Function bodies are design-time only, are not type-checked, and need 'unsafe-eval' in the page's Content-Security-Policy. Merged last, so they win.</description>
                 <properties>
                     <propertyGroup caption="Function property">
                         <property key="propertyName" type="string" required="false">
                             <caption>Property name</caption>
-                            <description>The Nivo configuration property this function is assigned to, e.g. tooltip, valueFormat, colors. Spelling is not validated — a name Nivo does not recognise is silently ignored by the chart.</description>
+                            <description>The Nivo configuration property this function is assigned to, e.g. tooltip, valueFormat, colors. Spelling is not validated — a name Nivo does not recognise is silently ignored.</description>
                         </property>
                         <property key="functionArguments" type="string" required="false">
                             <caption>Arguments</caption>
@@ -155,7 +155,7 @@
                         </property>
                         <property key="functionBody" type="string" multiline="true" required="false">
                             <caption>Body</caption>
-                            <description>The function body, without the surrounding function declaration or braces. It must return a value: a body that falls off the end returns undefined, which Nivo usually renders as an empty tooltip or a missing label rather than an error. Syntax is checked at design time.</description>
+                            <description>The function body, without the surrounding declaration or braces. It must return a value: a body that falls off the end returns undefined, which Nivo renders as an empty tooltip or a missing label. Syntax is checked at design time.</description>
                         </property>
                     </propertyGroup>
                 </properties>
@@ -164,7 +164,7 @@
         <propertyGroup caption="Display">
             <property key="heightMode" type="enumeration" defaultValue="pixels">
                 <caption>Height mode</caption>
-                <description>How the chart's height is decided. Nivo charts fill their container, so the container must have a height from somewhere — a chart in a container of zero height renders nothing at all, with no error.</description>
+                <description>How the chart's height is decided. Nivo charts fill their container, so a chart in a container of zero height renders nothing at all, with no error.</description>
                 <enumerationValues>
                     <enumerationValue key="pixels">Fixed pixels</enumerationValue>
                     <enumerationValue key="aspectRatio">Aspect ratio</enumerationValue>
@@ -177,17 +177,17 @@
             </property>
             <property key="aspectRatio" type="decimal" defaultValue="1.6" required="true">
                 <caption>Aspect ratio</caption>
-                <description>Width divided by height — 1.6 is roughly 16:10, 1 is square. The chart takes its width from the page and derives its height from this. Used only when Height mode is Aspect ratio; ignored otherwise.</description>
+                <description>Width divided by height — 1.6 is roughly 16:10, 1 is square. Used only when Height mode is Aspect ratio; ignored otherwise.</description>
             </property>
             <property key="emptyMessage" type="textTemplate" required="false">
                 <caption>Empty message</caption>
-                <description>Shown instead of the chart when the bound data is an empty array. Without it several chart types render an empty axis frame that looks like a broken chart rather than an absence of data, and a few throw. Leave empty to use the default text.</description>
+                <description>Shown instead of the chart when the bound data is an empty array. Without it several chart types render an empty axis frame that reads as a broken chart. Leave empty to use the default text.</description>
             </property>
         </propertyGroup>
         <propertyGroup caption="Accessibility">
             <property key="ariaLabel" type="textTemplate" required="false">
                 <caption>Accessible label</caption>
-                <description>Describes what the chart shows, for screen readers. A chart is an image to assistive technology: without this it is announced as nothing at all. Say what is being measured and over what, e.g. "Claims volume by month, split by peril" — not "bar chart".</description>
+                <description>Describes what the chart shows, for screen readers — without it the chart is announced as nothing at all. Say what is measured and over what, e.g. "Claims volume by month, split by peril", not "bar chart".</description>
             </property>
         </propertyGroup>
         <propertyGroup caption="Common">
