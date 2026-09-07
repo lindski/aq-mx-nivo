@@ -439,29 +439,47 @@ npm run prerelease # lint && check:layers && test
 npm run release    # dist/<version>/com.auraq.AqNivo.mpk — does NOT copy into the test app
 ```
 
-**The Mendix test app is a separate repository**, on Team Server; this one is on GitHub. Only the
-built `.mpk` crosses between them, and it is committed from the app side. Point the build at the test
-app with **`MX_PROJECT_PATH`** rather than editing `config.projectPath` — the environment variable
-wins, and needs no committed change:
+### Pointing the build at the Mendix test app
+
+**The Mendix test app is a separate repository**, on Team Server; this one is on GitHub. It lives
+*beside* this repo rather than inside it, and only the built `.mpk` crosses between them — committed
+from the app side.
+
+Because the app is outside this repo, `config.projectPath` **cannot** name it, and it is deliberately
+absent from `package.json`. Tell the build where the app is, once per machine:
 
 ```bash
-MX_PROJECT_PATH="/path/to/the/mendix/app" npm run build
+echo "../../.mx/AqNivo-main" > .mxproject     # relative to this repo root, or absolute
 ```
 
-> **Without it, `npm run build` succeeds and copies the `.mpk` nowhere useful.** `config.projectPath`
-> defaults to `./tests/testProject`, a local stub, so the build reports success, writes
-> `dist/<version>/com.auraq.AqNivo.mpk`, and leaves the app's `widgets/` folder untouched. Studio Pro
-> then keeps serving the previous build — and because the symptom is "my change did not appear", the
-> natural next move is to blame the XML cache and restart, which cannot help and hides the real cause.
-> **Check the `.mpk` timestamp in the app's `widgets/` folder before blaming the cache**, and confirm
-> the text is really in there:
+`.mxproject` is gitignored, so each machine sets its own. `MX_PROJECT_PATH` still wins if set, for a
+one-off build against a different app.
+
+`npm run build` resolves that path, hands it to the build tool, and then **verifies the `.mpk`
+actually landed**. `npm run check:target` does the resolve-and-validate half without building.
+`npm run release` needs no app — it writes to `dist/` only.
+
+> **Why this is a hard failure rather than a convention.** The generator's default
+> `config.projectPath` was `./tests/testProject`, a directory that does not exist here. PWT resolved
+> the copy target to nothing, skipped the copy **silently**, and exited 0 — leaving a correct `.mpk`
+> in `dist/` and the previous build in the app.
+>
+> That does not present as a build problem. It presents as **Studio Pro ignoring your change** — and
+> because Studio Pro really does cache a widget's parsed XML for the life of the open project, the
+> reasonable next move is to restart the project, which cannot help and costs minutes. It went
+> exactly that way on 2026-09-07.
+>
+> If the guard ever fires, fix the pointer rather than building without a target. And before blaming
+> the cache for anything, check what is actually in the archive:
 >
 > ```bash
+> ls -l <app>/widgets/com.auraq.AqNivo.mpk
 > unzip -p <app>/widgets/com.auraq.AqNivo.mpk "*AqNivo.xml" | grep "<some new text>"
 > ```
->
-> A harmless `cp: no such file or directory: dist/tmp/widgets/*` in the build log is a separate PWT
-> step copying unpacked files for hot reload; the `.mpk` is zipped, not copied, so it is unaffected.
+
+A `cp: no such file or directory: dist/tmp/widgets/*` line in the build log is harmless: it is a
+separate PWT step copying *unpacked* files for hot reload, and the `.mpk` is zipped rather than
+copied by it.
 
 **Studio Pro caches a widget's parsed XML and its design-time JS for the life of the open project.**
 After any rebuild that changes a property, a description or `check()`, close and reopen the project,

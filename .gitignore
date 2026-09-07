@@ -19,3 +19,6 @@ coverage
 # The Mendix test app is a separate Team Server repository. Never track a Mendix model here:
 # it is binary and rewritten on every Studio Pro save, so git cannot delta it.
 tests/
+
+# Machine-local pointer to the paired Mendix test app (see scripts/check-target.mjs)
+.mxproject
