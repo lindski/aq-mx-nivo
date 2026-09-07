@@ -12,84 +12,124 @@ and interactivity.
 
 ---
 
-## Added 2026-09-06 — Atlas theming (P-11) is BUILT and PART-VERIFIED
+## Added 2026-09-06 — Atlas theming (P-11), VERIFIED 2026-09-07
 
-**Partially confirmed in the running app, 2026-09-06.** With the P-11 `.mpk` installed and the
-project reopened, the developer reported that chart colours "align to the theme" on the gallery
-pages. That is a real observation and it settles the load-bearing question: **the token read, the
-colour resolution and the palette all work end to end in a browser.** Whatever `color-mix()`
-resolution does, it produces colours Nivo can draw with.
+**All five checks are answered.** Checks 3 (live theme switch) and 4 (tooltip in dark) were run by
+the developer by hand on 2026-09-07; checks 1, 2 and 5 were measured the same day by driving the
+26-page gallery with Playwright and reading the DOM, the resolved custom properties and the canvas
+backing store. The harness is committed in the test app at `.aq/nivo/chart-probe.js` and is
+re-runnable — repeatable evidence, not one look.
 
-It is deliberately recorded as *part*-verified rather than verified. It is one look at the default
-mode, in one renderer, in one theme — which is exactly the shape of evidence that produced the wrong
-"the other sixteen follow from these two" claim about interactivity. **What was seen is that the
-palette applies. What was not seen is any of the four checks below.**
+**What that closes.** The token read, the two-step `color-mix()` resolution, the palette, the
+palette *exclusions*, the Canvas font string, the live theme switch and the dark tooltip all work
+end to end in a browser. **P-11 is complete.** The caution below about silent failure was right to
+be there and has now been discharged by measurement rather than by a general smoke test.
 
-The rest of this section is unverified in a specific and awkward way: **every part of it that could
-fail silently, fails silently.** A theme that does not apply looks exactly like a chart that was
-never themed, and this widget's default is now `Full` — so a reader who does not know it was
-supposed to change will not notice that it did not. The colours looking right is not evidence about
-the Canvas font, the theme switch, the tooltip or the palette exclusions; those are independent
-mechanisms that happen to share a property.
+**What the repository proves separately.** The pure half — Atlas tokens in, Nivo theme and palette
+out, plus the theme deep-merge — has unit tests in `src/theme/atlasTheme.spec.ts`. The
+palette-support table was read out of the installed `@nivo/*` 0.99 type declarations, one package
+at a time, the same way `CHART_DATA_SHAPE` was. `npm run prerelease` passes, the release entry
+bundle is 26,559 bytes against 17,433 before, and the chunk count is unchanged at 100 — so theming
+did not undo the code splitting.
 
-**What the repository does prove.** The pure half — Atlas tokens in, Nivo theme and palette out,
-plus the theme deep-merge — has unit tests in `src/theme/atlasTheme.spec.ts`. The palette-support
-table was read out of the installed `@nivo/*` 0.99 type declarations, one package at a time, the
-same way `CHART_DATA_SHAPE` was. `npm run prerelease` passes, the release entry bundle is 26,559
-bytes against 17,433 before, and the chunk count is unchanged at 100 — so theming did not undo the
-code splitting.
+**Why none of this could be tested in jsdom, which is why it took a browser.** Reading the tokens
+needs a real CSS engine and a real canvas. jsdom's `getComputedStyle` does not evaluate
+`color-mix()`, and jsdom has no canvas — so a jsdom test of `readAtlasTokens` would pass against a
+resolver that returned the raw `color-mix(...)` string unchanged, which is precisely the bug the
+resolver exists to prevent. A test that cannot fail is worse than no test, because it gets quoted
+as evidence.
 
-**What it cannot prove, and why not testing it here was deliberate.** Reading the tokens needs a
-real CSS engine and a real canvas. jsdom's `getComputedStyle` does not evaluate `color-mix()`, and
-jsdom has no canvas — so a jsdom test of `readAtlasTokens` would pass against a resolver that
-returned the raw `color-mix(...)` string unchanged, which is precisely the bug the resolver exists
-to prevent. A test that cannot fail is worse than no test, because it gets quoted as evidence.
+### The five checks, and what each returned
 
-### RE-CHECK — the four that remain
+Numbering kept from the original five so a reference to "check 3" does not move.
 
-Numbering kept from the original five so that a reference to "check 3" does not move. **Check 1 (do
-the tokens resolve) and the SVG half of check 2 (does a chart look like the app) are answered** by
-the observation above — a palette that reaches the bars is a palette that resolved.
+**1. ANSWERED — the tokens resolve, and the two-step resolution IS load-bearing.**
 
-**1. ANSWERED — the tokens resolve and the palette reaches the chart.** Still worth running once for
-the detail it gives, because it distinguishes two situations the eye cannot:
-
-```js
-getComputedStyle(document.querySelector(".aq-nivo")).getPropertyValue("--brand-primary-600")
+```
+getComputedStyle(host).getPropertyValue("--brand-primary-600")
+  ->  "color-mix(in srgb, #264ae5, #000 20%)"
 ```
 
-A `color-mix(...)` string means the two-step resolution is load-bearing and the comment in
-`atlasTokens.ts` is right. An `rgb(...)` string means the browser resolved it before we did, the
-resolution is belt-and-braces, and that comment should be softened rather than left overstating its
-own necessity.
+The browser hands back the **token stream**, not a colour — so the comment in `atlasTokens.ts` is
+right as written and should NOT be softened. d3-color returns `null` for that string, and a null
+there does not throw, it produces an invisible label. The probe-element-plus-1x1-canvas resolution
+is doing real work on every token, every render.
 
-**2. PART-ANSWERED — check the Canvas half.** The SVG side is confirmed. **The failure mode still
-open is a chart that looks right in SVG and wrong in Canvas** — Nivo's Canvas renderers build a font
-string as `` `${fontSize}px ${fontFamily}` ``, so a fontSize that kept its unit gives `14pxpx` and
-the canvas silently falls back to a 10px default in a sans-serif that is not the app's. Colours
-would look perfect throughout. Open one Canvas chart (Bar, Line, Heat Map and Calendar all have one)
-and compare its tick labels to the SVG version's: same size, same face.
+The palette it resolves to, for the record — stock Atlas 3 on this app:
 
-**3. Does it follow a theme switch?** This app ships `:root.theme-dark` and `:root.theme-neutral`
-but nothing wires a switcher yet, so drive it from the console:
+| | token | resolved |
+|---|---|---|
+| P0 | `--brand-primary-600` | `rgb(30, 59, 183)` |
+| P1 | `--brand-warning-500` | `rgb(205, 133, 1)` |
+| P2 | `--brand-success-600` | `rgb(18, 136, 18)` |
+| P3 | `--brand-danger-500` | `rgb(234, 51, 55)` |
+| P4 | `--brand-primary-300` | `rgb(125, 146, 239)` |
+| P5–P7 | `--brand-{warning,success,danger}-300` | `rgb(225, 182, 103)`, `rgb(115, 204, 115)`, `rgb(242, 133, 135)` |
 
-```js
-document.documentElement.classList.add("theme-dark")     // then remove it
+**2. ANSWERED — the Canvas font string is well formed, and Canvas gets the palette too.**
+
+The failure this check existed for is a `14pxpx` font string that the canvas silently replaces with
+a 10px default face while every colour stays perfect. **A screenshot cannot answer it**, so the
+`font` setter on `CanvasRenderingContext2D.prototype` was patched and the chart forced to redraw.
+Across the whole re-render Nivo assigned exactly one font string:
+
+```
+14px "Poppins", sans-serif
 ```
 
-Axis text, gridlines, tooltip and series colours should all change **without a reload and without
-the chart re-animating from scratch**. A full re-animation means the token comparison in
-`useAtlasTheme` is not doing its job, and every unrelated class change on `<html>` is re-rendering
-the chart.
+Correctly formed, the app's own family, the app's own size — and `document.fonts.check("14px Poppins")`
+is `true`, so the face is really available to the canvas. Sampling the backing store on the Renderer
+comparison page then returned top colours `rgb(205, 133, 1)`, `rgb(18, 136, 18)`, `rgb(234, 51, 55)`,
+`rgb(125, 146, 239)` — **pixel-identical to P1–P4 above**. The backing store is 685×540 for a
+457×360 CSS box at `devicePixelRatio` 1.5, so it is correctly scaled and not blurred.
 
-**4. Does the tooltip read correctly in dark?** The tooltip container takes `--bg-color-secondary`
-and `--font-color-default`, which is the pairing most likely to come out dark-on-dark if an app
-declares one and not the other.
+> **Not a defect, but note it before someone reports one.** Side by side on the Renderer comparison
+> page the Canvas Tree Map looks visibly different from the SVG and HTML ones: no parent tiles, no
+> parent labels (`Fund`, `Financials`, …), and leaf colours at full strength rather than lightened.
+> That is `TreeMapCanvas` in Nivo — it has no parent-label layer — not a theming failure. The
+> colours are the same palette; the SVG variant lightens children over their parent.
 
-**5. Does the palette reach the eighteen chart types that should have it, and not the eight that
-should not?** Calendar is the one to look at: it must keep its own value ramp rather than turning
-into four unrelated hues. That is the check that proves `CHART_PALETTE_SUPPORT` is wired, not merely
-written.
+**3. ANSWERED by the developer, 2026-09-07 — it follows a live theme switch.** Confirmed by hand:
+the charts change with dark mode, no reload.
+
+**4. ANSWERED by the developer, 2026-09-07 — the tooltip reads correctly in dark.** Confirmed by
+hand. This was the pairing most likely to come out dark-on-dark (`--bg-color-secondary` against
+`--font-color-default`) and it does not.
+
+**5. ANSWERED — the palette reaches exactly the eighteen types that take one, and none of the eight
+that must not.** Measured across all 26 gallery pages by matching every mark's computed fill against
+the resolved token table above — the only way to tell a brand blue from Nivo's default blue.
+
+- **18 of 18 got it:** Area Bump, Bar, Bump, Chord, Circle Packing, Funnel, Line, Marimekko, Pie,
+  Radar, Radial Bar, Sankey, Scatter Plot, Stream, Sunburst, Swarm Plot, Tree Map, Waffle.
+- **8 of 8 were withheld:** Bullet (keeps Nivo's own scheme), Calendar, Choropleth, Heat Map and
+  Time Range (all keep their own value ramp), Geo Map and Voronoi (greys), Network.
+- **Calendar specifically** — the case this check was written around — keeps its blue value ramp and
+  does not turn into four unrelated hues. `CHART_PALETTE_SUPPORT` is wired, not merely written.
+
+### Measurement trap found while running check 5 — read this before reporting a red
+
+A naive fill census reports **pure red** (`rgb(255, 0, 0)`) on Bump, Line, Radar and Scatter Plot.
+It is not a theming bug and it is not visible: those are Nivo's **interaction hit-areas**, drawn as
+`fill="#F00"` with `fill-opacity="0"`. `getComputedStyle().fill` reports the red and says nothing
+about the opacity. Their presence is in fact evidence that tooltips are wired.
+
+`chart-probe.js` now excludes anything with a computed `fill-opacity` of 0. This is the same class
+of error as the retracted "Voronoi only draws 4 paths" finding — the measurement was wrong, not the
+chart. Solve the number back to the data before calling it a defect.
+
+### Still open after the sweep — Network draws in black (test-app data, not the widget)
+
+Network is geometrically **correct**: 7 nodes at per-node radii 12/9/8/6/6/5/5 — so the `nodeSize`
+function property works and the R-03 breakage is genuinely fixed — 8 links with real coordinates,
+**0 NaN attributes**, 0 console errors. But every node and link renders `#000000`.
+
+That is the seed data, not the theme. `CHART_PALETTE_SUPPORT.Network` is `false` and correctly so:
+Network takes `nodeColor`/`linkColor`, not a `colors` array, and `PartialTheme` carries no colours.
+Nivo's default `nodeColor` reads `node.color`, the sample supplies none, and the fallback is black.
+The fix belongs in the gallery seed — a `color` per node, or a `nodeColor` function property, which
+would make Network a second demonstration of function properties alongside `nodeSize`. Logged in the
+test app's plan; nothing to change in the widget.
 
 ### Known unknowns, stated rather than assumed
 
@@ -97,9 +137,10 @@ written.
   something d3-color cannot parse, based on Chrome serialising it as `color(srgb ...)`. The canvas
   normalisation makes the answer not matter — but the *claim* in the source comment is reasoned, not
   observed.
-- **`MutationObserver` on `<html>` and `<body>` is assumed to be where an Atlas theme class lands.**
-  It is where this app's `_theme-dark.scss` expects it (`:root.theme-dark`). An app that themes by
-  swapping a stylesheet, or by a class on some mid-page container, would not be seen.
+- **`MutationObserver` on `<html>` and `<body>` is CONFIRMED for this app** (check 3, 2026-09-07:
+  the charts follow a live dark-mode switch), which is where `_theme-dark.scss` puts the class
+  (`:root.theme-dark`). It remains an assumption about Atlas apps in general: one that themes by
+  swapping a stylesheet, or by a class on some mid-page container, would still not be seen.
 - **Nothing has confirmed that Nivo ignores a `colors` array on a chart type that does not declare
   the prop.** The reasoning is that a React component destructures what it wants; the palette is
   withheld from those eight anyway, so this is a second line of defence rather than the first.
