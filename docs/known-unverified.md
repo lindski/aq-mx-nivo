@@ -89,8 +89,8 @@ comparison page then returned top colours `rgb(205, 133, 1)`, `rgb(18, 136, 18)`
 > That is `TreeMapCanvas` in Nivo — it has no parent-label layer — not a theming failure. The
 > colours are the same palette; the SVG variant lightens children over their parent.
 
-**3. ANSWERED by the developer, 2026-09-07 — it follows a live theme switch.** Confirmed by hand:
-the charts change with dark mode, no reload.
+**3. ANSWERED — it follows a live theme switch.** Confirmed by hand by the developer, then
+**measured across all 26 charts plus Canvas** — see the dark-mode sweep below.
 
 **4. ANSWERED by the developer, 2026-09-07 — the tooltip reads correctly in dark.** Confirmed by
 hand. This was the pairing most likely to come out dark-on-dark (`--bg-color-secondary` against
@@ -106,6 +106,83 @@ the resolved token table above — the only way to tell a brand blue from Nivo's
   Time Range (all keep their own value ramp), Geo Map and Voronoi (greys), Network.
 - **Calendar specifically** — the case this check was written around — keeps its blue value ramp and
   does not turn into four unrelated hues. `CHART_PALETTE_SUPPORT` is wired, not merely written.
+
+### Dark-mode sweep, 2026-09-07 — all 26 charts, measured
+
+Check 3 was originally answered by hand on one chart. It has since been run across **all 26 gallery
+pages plus the Canvas renderer**, probing each chart light, flipping `theme-dark` on **the same
+visit**, probing again, and flipping back — so the two readings are comparable per chart rather than
+per session. `window.__aqDual` and `window.__aqTextSweep` in `chart-probe.js` do this.
+
+**This app's dark theme redefines the brand tokens**, which is what makes the sweep meaningful:
+
+| token | light | dark |
+|---|---|---|
+| `--brand-primary-600` | `rgb(30, 59, 183)` | `rgb(80, 101, 194)` |
+| `--font-color-default` | `rgb(74, 74, 76)` | `rgb(227, 227, 229)` |
+| `--bg-color-secondary` (tooltip) | `rgb(255, 255, 255)` | `rgb(31, 37, 60)` |
+| `--border-color-default` (gridlines) | `rgb(229, 231, 242)` | `rgb(108, 117, 125)` |
+
+**Result: 26 of 26 follow the switch. 0 console errors, 0 NaN, 0 remounts.**
+
+- **Series colours re-derive.** Every palette-supporting chart's marks match the *dark* palette
+  after the switch, and the shades Nivo derives from them move with it (Chord's arc borders go
+  `rgb(26, 51, 159)` -> `rgb(69, 88, 168)`, Pie's `rgb(21, 41, 128)` -> `rgb(56, 71, 136)`).
+- **Chrome re-derives.** Gridlines and axis text follow on every chart that has them.
+- **Nothing remounts.** The `<svg>` (or `<canvas>`) node held across the switch is still connected
+  afterwards on all 26, and every mark count is identical either side. **This is the check that
+  matters and the one nothing visible would catch** — a chart that re-animated from scratch settles
+  into the identical picture. It means `useAtlasTheme`'s token comparison is doing its job and an
+  unrelated class change on `<html>` will not rebuild the chart.
+- **Canvas follows too.** On the Renderer comparison page the backing store's colours all shift to
+  the dark palette with **pixel counts unchanged** (2150 / 1800 / 1327 / 957 — same tiles, new
+  colours), the canvas element is not replaced, and the font string stays `14px "Poppins", sans-serif`
+  right through the switch.
+- **The eight excluded types keep their own ramps in dark**, which is correct and worth stating
+  because it looks like a bug: Calendar, Choropleth, Heat Map and Time Range keep their light blue
+  value ramps, and Geo Map and Voronoi their greys, against a dark page. Those colours are the
+  chart's data encoding, not chrome. An app that wants them to adapt sets `emptyColor` / the ramp in
+  its own configuration — the widget must not guess a value ramp.
+
+### DEFECT found by the sweep — Choropleth's legend is unreadable in dark
+
+**All 9 of Choropleth's `<text>` nodes are legend labels hardcoded to `rgb(68, 68, 68)`, and they do
+not move.** Every other chart's text follows (0 stuck across the other 25, with one correct
+exception below). In dark mode that is dark grey on `rgb(31, 37, 60)` — effectively invisible;
+there is a screenshot of it in the session.
+
+**It is the sample's static configuration, not the widget, and Nivo's precedence proves it.** From
+the installed `@nivo/legends` 0.99 bundle:
+
+```
+itemTextColor ?? ... ?? theme.legends.text.fill ?? "black"
+```
+
+`atlasTheme` **does** set `legends.text.fill` — it is simply outranked by a supplied
+`itemTextColor`. And the themed value is exactly what you get when the key is absent, so `#444`
+cannot be a Nivo default; it is set explicitly. It is the value straight out of Nivo's own
+choropleth docs example, which is how it got there.
+
+**Fix:** delete `itemTextColor` from the Choropleth sample's legend configuration in the gallery
+seed. Nothing to change in the widget. Note that the legend's *font family and size* are already
+themed (`Poppins`, `14px`) — only the colour is overridden, which is why this reads as a theme
+failure at a glance.
+
+> **This is the documented "static configuration wins" rule landing for real.** `check()` already
+> warns when `Match app theme: Full` sits alongside a `colors` key. `itemTextColor` is the same
+> shape and is **not** covered by that warning. Worth considering whether the rule should widen to
+> the theme-overriding legend and label colour props, or whether that is too broad to be useful —
+> it is a judgement call, not an obvious gap.
+
+### Correct-but-surprising: Heat Map's in-cell labels do not follow either
+
+20 of Heat Map's 41 text nodes keep their colour across the switch. **That is right.** Those are the
+in-cell value labels, coloured by `labelTextColor: { from: "color" }` — derived from the cell's own
+fill so they stay legible against it. The Heat Map ramp is a static value ramp that does not change
+with the theme, so neither do labels derived from it. The other 21 (axis ticks and legend) follow
+normally.
+
+Do not "fix" this. A label inside a coloured cell must contrast with the **cell**, not with the page.
 
 ### Measurement trap found while running check 5 — read this before reporting a red
 
