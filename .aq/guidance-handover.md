@@ -2,6 +2,14 @@
 
 **For a guidance session. Self-contained: nothing here needs this repository or a Mendix app.**
 
+> **Filed as AuraQ/guidance#35 on 2026-09-08** — handed over, awaiting publication as
+> `knowledge/developer/widgets/aqnivo.md` plus a `widgets.json` entry.
+>
+> **This file stays.** It is the source the published reference is regenerated FROM, not a copy of it —
+> see `docs/build-notes.md` step 7. **Regenerate it and re-file whenever a property key, a description or
+> a `check()` rule changes**, because a renamed key is a breaking change for page authoring and the
+> published reference goes stale silently.
+
 Produced 2026-09-08 against **Studio Pro 11.12.4**, **AqNivo 2.0.0**, `@nivo/*` **0.99.0**, React 19.
 Every skeleton below was **read back** from a working page with `pg_read_page`, and every page named
 was loaded in a browser. Where something was not verified it is named in
