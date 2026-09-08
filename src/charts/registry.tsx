@@ -1,6 +1,7 @@
 import { ComponentType, LazyExoticComponent, ReactElement, createElement, lazy } from "react";
 
 import { CHART_DATA_SHAPE, ChartType, RendererMode, supportsRenderer } from "./chartTypes";
+import { withNivoDefects } from "./nivoDefects";
 
 /**
  * (Chart type, rendering technology) -> a loader for the Nivo component that draws it.
@@ -155,9 +156,9 @@ export function renderChart(
      * another features-only chart.
      */
     const takesBoundData = CHART_DATA_SHAPE[chartType] !== "features";
+    const props = withNivoDefects(chartType, effective, configuration);
 
-    return takesBoundData
-        ? createElement(Chart, { data, ...configuration })
-        : createElement(Chart, { ...configuration });
+    return takesBoundData ? createElement(Chart, { data, ...props }) : createElement(Chart, { ...props });
 }
+
 /* eslint-enable @typescript-eslint/no-explicit-any */

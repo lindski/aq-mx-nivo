@@ -1,8 +1,10 @@
 import {
     CHART_DATA_SHAPE,
+    CHART_NEEDS_FEATURES,
     CHART_RENDERER_SUPPORT,
     CHART_TYPES,
     RENDERER_MODES,
+    isMissingFeatures,
     isRendererMode,
     supportsRenderer
 } from "./chartTypes";
@@ -68,5 +70,52 @@ describe("renderer support", () => {
         expect(isRendererMode("Canvas")).toBe(true);
         expect(isRendererMode("canvas")).toBe(false);
         expect(isRendererMode("WebGL")).toBe(false);
+    });
+});
+
+/*
+ * The `features` guard.
+ *
+ * These are the tests for a bug that no unit test could have found and no unit test can reproduce:
+ * Nivo throwing inside `features.map` when the widget hands it a configuration with no `features`.
+ * What CAN be pinned is the decision table and the predicate the guard reads, so that is what these
+ * do — the rendering half was watched in the running app on 2026-09-08.
+ */
+describe("the features guard", () => {
+    /*
+     * Deliberately NOT derived from `CHART_DATA_SHAPE`. The two tables answer different questions and
+     * disagree on Choropleth: its `data` is an array, and it still needs `features`. Writing the
+     * expected list out by hand is what makes that disagreement visible rather than accidental.
+     */
+    it("marks exactly the chart types that read features out of the configuration", () => {
+        const needs = CHART_TYPES.filter(t => CHART_NEEDS_FEATURES[t]);
+        expect(needs).toEqual(["Choropleth", "GeoMap"]);
+    });
+
+    it("leaves every other chart type alone, whatever the configuration holds", () => {
+        for (const chartType of CHART_TYPES.filter(t => !CHART_NEEDS_FEATURES[t])) {
+            expect(isMissingFeatures(chartType, {})).toBe(false);
+            expect(isMissingFeatures(chartType, { features: "not an array" })).toBe(false);
+        }
+    });
+
+    it("catches a features that is absent, empty, or the wrong shape", () => {
+        for (const chartType of ["GeoMap", "Choropleth"] as const) {
+            // The type-switch case: the previous chart's configuration, which has no `features`.
+            expect(isMissingFeatures(chartType, { keys: ["value"], colors: "blues" })).toBe(true);
+            expect(isMissingFeatures(chartType, {})).toBe(true);
+            // An empty array reaches `.map` safely but draws a map of nothing, which is not a map.
+            expect(isMissingFeatures(chartType, { features: [] })).toBe(true);
+            // Anything not an array reaches the same `.map` and throws the same way.
+            expect(isMissingFeatures(chartType, { features: null })).toBe(true);
+            expect(isMissingFeatures(chartType, { features: { type: "FeatureCollection" } })).toBe(true);
+        }
+    });
+
+    it("passes a real feature collection through", () => {
+        const configuration = { features: [{ type: "Feature", id: "GBR", geometry: {} }] };
+
+        expect(isMissingFeatures("GeoMap", configuration)).toBe(false);
+        expect(isMissingFeatures("Choropleth", configuration)).toBe(false);
     });
 });

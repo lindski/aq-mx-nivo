@@ -6,9 +6,75 @@ be built, linted, unit-tested and packaged outside Mendix; almost none of it can
 Keep this file honest. A claim moves out of here when something was observed, not when it seems
 likely.
 
-Status as of **2026-09-06**, after Atlas theming (P-11). Before that: the renderer split, the two
+Status as of **2026-09-08**, after the two @nivo/geo defect absorptions. Before that: Atlas theming (P-11), the renderer split, the two
 check() defect fixes, the first runtime smoke test of the gallery, code splitting, datasource mode
 and interactivity.
+
+---
+
+## Added 2026-09-08 — two Nivo 0.99 defects the widget now absorbs, both VERIFIED in a running app
+
+Both live in `@nivo/geo`, and both were read out of the original sources in
+`node_modules/@nivo/geo/dist/nivo-geo.mjs.map` — **not** the minified bundle and **not** the shipped
+`index.d.ts`, which omits `fill`/`defs` altogether and so agrees with the implementation while
+disagreeing with the components' own default props.
+
+### 1. `features` is destructured with no default, and `features.map` throws
+
+`GeoMap.js` and `Choropleth.js` both take `features` bare; GeoMap's layer loop and `useChoropleth`
+then call `.map` on it. A configuration with no `features` throws several frames below anything named
+after this widget.
+
+**Why this is not academic.** A page that lets the user pick the chart type renders the NEW type
+against the OLD configuration for one commit, and a Bar chart's configuration has no `features`.
+Measured in the gallery playground on 2026-09-08: switching through all 26 chart types produced
+**exactly one throw, on Geo Map**. Choropleth did not throw in that ordering, but its source is
+identical — it is one render-timing away from the same crash, which is why the guard covers both.
+
+**Why guarding beats catching.** `ChartErrorBoundary` did catch it, and that is not enough: **React
+logs every error a boundary catches, from inside React, and a wrapper cannot suppress it.** The root
+is Mendix's, so `onCaughtError` is not ours to set either. The only way to keep a consumer's console
+clean is to not throw — hence `isMissingFeatures` in `charts/chartTypes.ts`, checked in `NivoChart`'s
+precondition ladder.
+
+Reported as the **empty** state rather than the error one, with a detail line naming `features`.
+During the one-commit transient nothing is actually wrong and a red error would be a lie; for a
+genuinely misconfigured chart the detail says more than the throw ever did.
+
+> **VERIFIED 2026-09-08.** The 26-type sweep re-run after the fix: **26 of 26 switched with zero
+> console errors, and every one drew** — against 1 throw before. Separately, with the Geo Map
+> configuration deliberately blanked to `{"margin":{...}}`, the page shows *"No data for this chart
+> type... Geo Map draws its geography from a "features" collection in the configuration, which is not
+> set."* — empty styling, 0 console errors.
+
+### 2. `GeoMapCanvas` alone leaves `layers` undefaulted
+
+`GeoMap.js` defaults `layers` to `['graticule', 'features']`. `GeoMapCanvas.js` destructures it bare
+and then calls `layers.forEach`, so **every** consumer drawing a Geo Map on Canvas gets `Cannot read
+properties of undefined (reading 'forEach')` unless they happen to pass `layers`. Choropleth's Canvas
+variant defaults it correctly — this is one component, not a family trait.
+
+`charts/nivoDefects.ts` supplies it, and **only** when the configuration has not. That module is the
+one place the widget puts a value into the configuration the modeller did not write, and it earns the
+exception by *restoring* a default Nivo's own sibling component already has rather than inventing one.
+**On a Nivo upgrade, re-check every entry and delete what upstream has fixed** — a workaround kept
+past its repair is just a property the modeller can no longer control.
+
+> **VERIFIED 2026-09-08.** Geo Map + Canvas with `layers` absent from the configuration entirely
+> (confirmed by reading the configuration editor back): pixel census 64,055 px `47,111,181`,
+> 137,651 px `238,241,246`, 242 px graticule, **0 px black and 0 px `221,221,221`** — the last being
+> Nivo's own `fillColor` default, whose absence is what proves the accessor was honoured. Identical
+> to the census taken while `layers` WAS in the configuration, so the default reproduces the explicit
+> value exactly.
+
+### The related trap that is documentation, not code — `fill` and `defs` on a Geo Map
+
+`GeoMapDefaultProps` declares `fill: []` and `defs: []`, Nivo's docs list them, and **the GeoMap
+component reads neither** — `bindDefs` is called only from `Choropleth.js`. Match rules on a Geo Map
+are accepted and silently ignored. There is nothing for the widget to absorb here: the working route
+is `fillColor` as an accessor, and `"@fn:prop:properties.fill"` reads a colour off each feature in
+both renderers. **This belongs in `docs/page-authoring.md`**, so page authors meet it before they
+design around a capability that does not exist.
 
 ---
 

@@ -63,3 +63,39 @@ So when Part B is written:
   shape and the chart types with no palette overlap in only three places, and an agent that conflates
   them will confidently recommend an impossible binding.
 - The README is the source to lift from; keep the two in step or say plainly which one wins.
+
+## Part B must carry the two geographic chart facts
+
+Added 2026-09-08. These are page-authoring facts specifically — they change what someone *designs*,
+not just what they debug, which is why they belong in the published reference rather than only in
+[known-unverified.md](known-unverified.md).
+
+**A Geo Map cannot be styled with `fill` match rules, however much Nivo implies it can.**
+`GeoMapDefaultProps` declares `fill: []` and `defs: []` and Nivo's own documentation lists both, but
+the GeoMap component reads neither — `bindDefs` is called only from `Choropleth.js`. A page author
+who designs a rule-styled base map from the documentation will produce a configuration that is
+accepted, ignored, and reports nothing.
+
+The route that works is `fillColor` as an **accessor**, which both the SVG and Canvas renderers
+honour: put the colour on each feature and read it back with the function-marker registry —
+
+```json
+{ "fillColor": "@fn:prop:properties.fill", "features": [ { "type": "Feature", "id": "GBR", "properties": { "fill": "#2f6fb5" }, "geometry": { } } ] }
+```
+
+Do **not** reach for the shortcut of a top-level `fill` on each feature. `GeoMapFeature` renders
+`fill={feature?.fill ?? fillColor}`, so it styles the SVG with no configuration change at all — and
+is silently ignored by Canvas, which reads `getFillColor(feature)` and never looks at the feature.
+The accessor form is what makes the two renderers agree.
+
+**And say which chart is which.** Geo Map is a base map with no value scale: it answers *where*, and
+is styled by rule. Whenever there is a value per country, Choropleth is the right chart. Both need a
+`features` collection in the configuration; neither takes one any other way, and a GeoJSON world
+collection is ~250 KB, which is far too large for a microflow literal — read it from `resources/` at
+seed or load time.
+
+The widget absorbs two Nivo defects around this so a page author never meets them: a missing
+`features` now renders the empty state instead of throwing, and `layers` is supplied for
+`GeoMapCanvas`, which is the only Nivo component that fails to default it. **Both are workarounds
+with an expiry** — see `charts/nivoDefects.ts`. If Part B ever claims a Nivo version where they are
+fixed, re-check.
