@@ -9,6 +9,27 @@ Environment these were established on: Windows 11, **Node 22.18.0**, npm 10.9.3,
 
 ---
 
+## The release checklist
+
+The `.mpk` is not the whole release. **A widget nobody can discover is not shipped**, so the handover
+is on this list rather than in someone's memory.
+
+| # | Step | Why it is here |
+|---|---|---|
+| 1 | `npm run prerelease` — lint, `check:layers`, tests | the `package.json` ↔ `src/package.xml` version guard lives in `check:layers` |
+| 2 | `npm audit --omit=dev`, reported separately from the dev figure | the `.mpk` ships runtime dependencies and none of the toolchain; one combined number mixes two populations with different consequences and gets ignored wholesale |
+| 3 | Delete `dist/<version>/`, `npm run release`, measure the `.mpk` | a `build` figure is several times larger than a `release` one and is not worth quoting |
+| 4 | Confirm code splitting by **grepping the entry bundle for the chunk name** | not by the absence of warnings — one Babel warning about dynamic imports in the AMD output is expected and correct |
+| 5 | Install into the test app, **Clean Deployment Directory**, F4, read `deployment/log/app_bundle_log.txt` | Studio Pro's second bundler reports failures with an empty error string in the dialog |
+| 6 | After any `editorConfig.ts` change: check the `.mpk` timestamp moved, then **close and reopen the project** | Studio Pro caches design-time JS for the life of the open project. Reopening only helps once the file underneath has actually changed |
+| 7 | **Regenerate `.aq/guidance-handover.md`** if any property key, description or `check()` rule changed | a renamed key is a breaking change for page authoring as much as for placed instances, and the reference goes stale **silently** |
+| 8 | Hand the handover to a guidance session with the prompt at the top of it | Part A is what `list_widgets` serves; without it the reference is unreachable in practice |
+
+**Step 7 is the one that gets skipped.** Steps 1–6 fail loudly when they are wrong. A stale reference
+fails by being confidently followed.
+
+---
+
 ## The effective Node floor is higher than anything declares it
 
 **Verified by observation, 2026-09-03.** `@mendix/pluggable-widgets-tools@11.12.0` declares

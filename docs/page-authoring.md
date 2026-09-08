@@ -29,19 +29,27 @@ entirely plausible-looking. No schema can express that, so the reference must.
 
 ## Status
 
-**Not yet published.** The reference is written at the end of the 2.0 rebuild, as
-`.aq/guidance-handover.md` in this repo, and handed to a guidance session. It has three parts:
+**Written 2026-09-08 and ready to hand over. Not yet published** — that step is the guidance session's.
+The handover is `.aq/guidance-handover.md` in this repo, produced against **Studio Pro 11.12.4**,
+**AqNivo 2.0.0**, `@nivo/*` **0.99.0**. It has four parts:
 
-| Part | Contents | Becomes |
-|---|---|---|
-| **A** | Directory entry — `widgetId`, slug, aliases, summary, `useWhen`, `useInstead`, `verification` | a record in `widgets.json`, served by `list_widgets` |
-| **B** | The reference — page-JSON skeleton **read back** from a working page with `pg_read_page`, valid property combinations, model prerequisites | the published reference |
-| **C** | The captured VFS auto-schema and how it differed from the XML | a cross-check for the maintainer; not published |
+| Part | Contents | Becomes | State |
+|---|---|---|---|
+| **A** | Directory entry — `widgetId`, slug, aliases, summary, `useWhen`, `useInstead`, `verification` | a record in `widgets.json`, served by `list_widgets` | written; `verification: "verified"` |
+| **B** | The reference — page-JSON skeleton **read back** with `pg_read_page`, valid property combinations, model prerequisites | the published reference | written from two working pages plus the check harness |
+| **C** | The captured VFS auto-schema and how it differed from the XML | a cross-check for the maintainer; **not published** | captured and verified — parses, and its 19 property keys match the XML exactly |
+| **D** | The rendered DOM class tree | the record's `design.snapshot` | captured from the running app, `fidelity: "captured"` |
 
-**Part A is the half that decides whether anyone finds the widget** — a reference that is published
-but not in the directory is unreachable in practice.
+**Part A is the half that decides whether anyone finds the widget** — a reference that is published but
+not in the directory is unreachable in practice.
 
-No `gate` applies. Nivo is MIT.
+**Six things are named as unverified**, field by field, in the handover's own Rule 3 table rather than
+hedged in prose: `heightMode: "fillParent"` serialisation, `conditionalVisibilitySettings` on this
+widget, `appearance.class` on this widget specifically, a valid `chartTypeExpression` driven at runtime,
+`functionProperties` under a CSP without `unsafe-eval`, and datasource mode above ~2,000 rows. Each
+carries what it would cost to close.
+
+No `gate` applies. Nivo is MIT, all 25 packages ship inside the `.mpk`, and there is no trial mode.
 
 ## The reference now carries more weight than it did
 
@@ -64,38 +72,20 @@ So when Part B is written:
   them will confidently recommend an impossible binding.
 - The README is the source to lift from; keep the two in step or say plainly which one wins.
 
-## Part B must carry the two geographic chart facts
+## The geographic chart facts are in the handover, at §4.5
 
-Added 2026-09-08. These are page-authoring facts specifically — they change what someone *designs*,
-not just what they debug, which is why they belong in the published reference rather than only in
+Added 2026-09-08 and written straight into `.aq/guidance-handover.md` rather than duplicated here.
+They are page-authoring facts specifically — they change what someone *designs*, not just what they
+debug — which is why they belong in the published reference and not only in
 [known-unverified.md](known-unverified.md).
 
-**A Geo Map cannot be styled with `fill` match rules, however much Nivo implies it can.**
-`GeoMapDefaultProps` declares `fill: []` and `defs: []` and Nivo's own documentation lists both, but
-the GeoMap component reads neither — `bindDefs` is called only from `Choropleth.js`. A page author
-who designs a rule-styled base map from the documentation will produce a configuration that is
-accepted, ignored, and reports nothing.
+In short: **a Geo Map cannot be styled with `fill` match rules, however much Nivo implies it can.**
+`GeoMapDefaultProps` declares `fill` and `defs`, Nivo's own documentation lists both, and the GeoMap
+component reads neither — `bindDefs` is called only from `Choropleth`. The route that works is
+`fillColor` as an accessor. And **Geo Map answers *where*, Choropleth answers *how much*** — whenever
+there is a value per country, Choropleth is the right chart.
 
-The route that works is `fillColor` as an **accessor**, which both the SVG and Canvas renderers
-honour: put the colour on each feature and read it back with the function-marker registry —
-
-```json
-{ "fillColor": "@fn:prop:properties.fill", "features": [ { "type": "Feature", "id": "GBR", "properties": { "fill": "#2f6fb5" }, "geometry": { } } ] }
-```
-
-Do **not** reach for the shortcut of a top-level `fill` on each feature. `GeoMapFeature` renders
-`fill={feature?.fill ?? fillColor}`, so it styles the SVG with no configuration change at all — and
-is silently ignored by Canvas, which reads `getFillColor(feature)` and never looks at the feature.
-The accessor form is what makes the two renderers agree.
-
-**And say which chart is which.** Geo Map is a base map with no value scale: it answers *where*, and
-is styled by rule. Whenever there is a value per country, Choropleth is the right chart. Both need a
-`features` collection in the configuration; neither takes one any other way, and a GeoJSON world
-collection is ~250 KB, which is far too large for a microflow literal — read it from `resources/` at
-seed or load time.
-
-The widget absorbs two Nivo defects around this so a page author never meets them: a missing
-`features` now renders the empty state instead of throwing, and `layers` is supplied for
-`GeoMapCanvas`, which is the only Nivo component that fails to default it. **Both are workarounds
-with an expiry** — see `charts/nivoDefects.ts`. If Part B ever claims a Nivo version where they are
-fixed, re-check.
+Two adjacent Nivo defects are **absorbed in widget code** so a page author never meets them: a missing
+`features` renders the empty state instead of throwing, and `layers` is supplied for `GeoMapCanvas`,
+the only Nivo component that fails to default it. **Both are workarounds with an expiry** — see
+`charts/nivoDefects.ts`, and re-check them on any Nivo upgrade.
