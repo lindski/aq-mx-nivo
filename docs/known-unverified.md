@@ -31,6 +31,10 @@ Measured in the gallery playground on 2026-09-08: switching through all 26 chart
 **exactly one throw, on Geo Map**. Choropleth did not throw in that ordering, but its source is
 identical — it is one render-timing away from the same crash, which is why the guard covers both.
 
+**That "exactly one" figure is understated, and the reason is in the verification note below:** it was
+a cold pass, where lazy chunk loading masks the race for every chart type whose code had not yet been
+fetched. Geo Map showed up only because its chunk was already warm from an earlier page visit.
+
 **Why guarding beats catching.** `ChartErrorBoundary` did catch it, and that is not enough: **React
 logs every error a boundary catches, from inside React, and a wrapper cannot suppress it.** The root
 is Mendix's, so `onCaughtError` is not ours to set either. The only way to keep a consumer's console
@@ -41,11 +45,42 @@ Reported as the **empty** state rather than the error one, with a detail line na
 During the one-commit transient nothing is actually wrong and a red error would be a lie; for a
 genuinely misconfigured chart the detail says more than the throw ever did.
 
-> **VERIFIED 2026-09-08.** The 26-type sweep re-run after the fix: **26 of 26 switched with zero
-> console errors, and every one drew** — against 1 throw before. Separately, with the Geo Map
-> configuration deliberately blanked to `{"margin":{...}}`, the page shows *"No data for this chart
-> type... Geo Map draws its geography from a "features" collection in the configuration, which is not
-> set."* — empty styling, 0 console errors.
+> **VERIFIED 2026-09-08 — for Geo Map and Choropleth, which is what the guard covers. The "26 of 26
+> clean" figure first recorded here was WRONG, and how it was wrong is the more useful finding.**
+>
+> With the Geo Map configuration deliberately blanked to `{"margin":{...}}`, the page shows *"No data
+> for this chart type... Geo Map draws its geography from a "features" collection in the configuration,
+> which is not set."* — empty styling, 0 console errors. That part stands.
+>
+> **The sweep figure does not.** A first measurement reported 26 of 26 type-switches clean; a later one
+> on the same build reported 9, then 10. The difference is **lazy chunk loading**, and it was isolated
+> with a controlled A/B in one document:
+>
+> | Same 26 switches, same document, back to back | Chart types that threw |
+> |---|---|
+> | **Cold pass** — every `@nivo/*` chunk loading for the first time | **0** |
+> | **Warm pass** — immediately again, chunks now cached | **10** |
+>
+> On a **cold** chunk the chart suspends while the code downloads, and by the time the component mounts
+> the configuration has caught up — so the transient never happens. On a **warm** chunk the component
+> mounts in the same commit as the type change, against the *previous* chart's configuration, and Nivo
+> throws. **Every clean sweep this project has run was a cold pass.**
+>
+> Warm, ten chart types throw: Area Bump, Bullet, Bump, Chord, Line, Marimekko, Radar, Radial Bar,
+> Stream, Time Range. The membership shifts slightly run to run, because it is a race.
+>
+> **Geo Map and Choropleth are absent from the warm list** — which is a *stronger* result for the guard
+> than the original claim was, because warm is precisely the condition under which they used to fail.
+>
+> **The class is therefore broader than `features`, and the widget does not yet cover it.** Each of the
+> ten needs a different key that Nivo dereferences without a default — `keys` for Radar and Stream,
+> `dimensions` for Marimekko, a square matrix for Chord, `ranges`/`measures` for Bullet, and so on.
+> Guarding them needs a per-chart-type required-configuration table, derived the same way `features`
+> was: by reading each component's source, not by guessing. **Not yet built — see the plan.**
+>
+> **The measurement lesson, which generalises past this widget:** a lazily-loaded component hides its
+> own mount-time races on first render. Any sweep over lazily-split code must run **twice** and report
+> the warm pass, or it measures the loader rather than the code.
 
 ### 2. `GeoMapCanvas` alone leaves `layers` undefaulted
 
