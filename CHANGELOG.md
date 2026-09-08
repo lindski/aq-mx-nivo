@@ -2,7 +2,14 @@
 
 All notable changes to AqNivo are recorded here. This project follows [semantic versioning](https://semver.org/).
 
-## 2.0.0 — unreleased
+## Unreleased
+
+_Nothing yet. 2.0.0 is published, so everything from here is an incremental release —
+patch for fixes, minor for additive property changes. **A property key rename is breaking for page
+authoring as well as for placed instances**, so it also means regenerating `.aq/guidance-handover.md`
+and re-filing it (release-checklist step 7)._
+
+## 2.0.0 — released 2026-09-08
 
 **Breaking.** 2.0 changes the widget's identity and will change its property surface. Every placed
 instance of 1.0.0 must be re-placed by hand; there is no migration and Studio Pro will not offer one.
