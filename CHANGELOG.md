@@ -7,6 +7,43 @@ All notable changes to AqNivo are recorded here. This project follows [semantic 
 **Breaking.** 2.0 changes the widget's identity and will change its property surface. Every placed
 instance of 1.0.0 must be re-placed by hand; there is no migration and Studio Pro will not offer one.
 
+### Fixed — charts no longer throw when the chart type changes before its payload does
+
+A page that lets the user pick the chart type renders the NEW type against the OLD data and
+configuration for one commit. Nivo dereferences several props without defaulting them, so that commit
+did not render badly — it **threw**, and `ChartErrorBoundary` caught it. Catching is not enough:
+**React logs every error a boundary catches, from inside React, and a wrapper cannot suppress it.** The
+React root is Mendix's, so `onCaughtError` is not ours to set either. The only fix is to not throw.
+
+`charts/drawability.ts` decides whether a chart can be drawn *before* Nivo is asked to try, and reports
+the **empty** state with a detail line naming what is missing. Empty rather than error is deliberate:
+during that one commit nothing is actually wrong, and a red error would be a lie.
+
+Three kinds of rule, each derived by measurement rather than from the documentation:
+
+- **Element shape** — a series chart handed a flat list, Chord handed records instead of a matrix,
+  Calendar or Time Range handed data with no `day`, Bullet with no `ranges`/`measures`.
+- **Required configuration** — `keys` for Chord, Radar and Stream; `id`, `value` and `dimensions` for
+  Marimekko. A key is listed **only** because rendering that chart with `{}` was observed to throw.
+- **Configuration naming fields the data does not carry** — the half a shape check cannot reach, where
+  configuration and data are each valid alone but disagree. A *partial* match passes: a stacked chart
+  legitimately has datums missing some keys.
+
+**How the rules were derived.** For every chart type that threw, two controlled probes: correct
+configuration with foreign data, and correct data with an empty configuration. Eight of the ten were a
+data mismatch, four needed a configuration key, two were both.
+
+**Measurement note, and it is the reason the first attempt at this looked complete when it was not.**
+A lazily-loaded component **hides its own mount-time races on first render** — on a cold chunk the chart
+suspends while the code downloads and the payload catches up. A cold sweep of all 26 chart types
+reported zero problems; a warm sweep of the same 26 in the same document reported ten. **Any sweep over
+lazily-split code must run twice and report the warm pass.**
+
+Verified in the running app: warm sweep **0 of 26** offenders, down from 10, with all 26 still painting.
+Regression bed clean across **43 chart instances** — the 26 gallery pages, both Claims dashboards
+(8 and 4), the data-source page and the renderer comparison — none of which fell to the empty state.
+An over-strict rule blanking a working chart would have been strictly worse than the noise it removed.
+
 ### Breaking
 
 - **Widget id changed from `auraq.aqnivo.AqNivo` to `com.auraq.aqnivo.AqNivo`**, and `packagePath`

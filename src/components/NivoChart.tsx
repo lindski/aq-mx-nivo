@@ -1,14 +1,8 @@
 import { CSSProperties, Fragment, ReactElement, Suspense, useMemo, useRef } from "react";
 
 import { renderChart } from "../charts/registry";
-import {
-    CHART_DATA_SHAPE,
-    CHART_LABELS,
-    CHART_PALETTE_SUPPORT,
-    ChartType,
-    RendererMode,
-    isMissingFeatures
-} from "../charts/chartTypes";
+import { CHART_DATA_SHAPE, CHART_PALETTE_SUPPORT, ChartType, RendererMode } from "../charts/chartTypes";
+import { whyCannotDraw } from "../charts/drawability";
 import { DataTable, tabulate } from "../data/dataTable";
 import { isEmptyData, parseChartData } from "../data/parseJson";
 import { mergeCacheKey, mergeConfiguration } from "../config/merge";
@@ -228,26 +222,23 @@ export function NivoChart(props: NivoChartProps): ReactElement {
             return state("empty", emptyMessage);
         }
         /*
-         * The other half of the same question: Geo Map and Choropleth read their geography from
-         * `features` in the CONFIGURATION, and Nivo defaults it in neither — `features.map(...)`
-         * throws inside Nivo instead.
+         * The other half of the same question, and a much bigger half than it first looked.
          *
-         * The boundary below catches it, and that is not enough. React logs every error a boundary
-         * catches, from inside React, and a wrapper cannot suppress that — so the only way to keep a
-         * consumer's console clean is to not throw. Which matters because the failure is not exotic:
-         * a page that lets the user choose the chart type renders the NEW type against the OLD
-         * configuration for one commit, and a Bar chart's configuration has no `features`.
+         * Nivo dereferences several props without defaulting them, so a chart handed the wrong data or
+         * an incomplete configuration throws rather than rendering badly. The boundary below catches
+         * it and that is not enough — React logs every error a boundary catches, from inside React,
+         * and a wrapper cannot suppress it. Not throwing is the only way to keep a console clean.
          *
-         * Reported as the EMPTY state, not the error one. During that one commit nothing is wrong
-         * and a red error would be a lie; for a genuinely misconfigured chart the detail line says
-         * what is missing, which is more than the throw ever did.
+         * Reported as the EMPTY state, not the error one. The case this exists for is a page whose
+         * user picks the chart type: for one commit the new type holds the old payload, nothing is
+         * actually wrong, and a red error would be a lie. For a genuinely misconfigured chart the
+         * detail line names the missing thing, which is more than the throw ever did.
+         *
+         * See `charts/drawability.ts` for how each rule was measured rather than assumed.
          */
-        if (isMissingFeatures(chartType, configuration)) {
-            return state(
-                "empty",
-                emptyMessage,
-                `${CHART_LABELS[chartType]} draws its geography from a "features" collection in the configuration, which is not set.`
-            );
+        const undrawable = whyCannotDraw(chartType, data.ok ? data.value : undefined, configuration);
+        if (undrawable) {
+            return state("empty", emptyMessage, undrawable);
         }
         return (
             <ChartErrorBoundary

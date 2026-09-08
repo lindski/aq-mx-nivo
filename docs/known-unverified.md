@@ -72,11 +72,9 @@ genuinely misconfigured chart the detail says more than the throw ever did.
 > **Geo Map and Choropleth are absent from the warm list** — which is a *stronger* result for the guard
 > than the original claim was, because warm is precisely the condition under which they used to fail.
 >
-> **The class is therefore broader than `features`, and the widget does not yet cover it.** Each of the
-> ten needs a different key that Nivo dereferences without a default — `keys` for Radar and Stream,
-> `dimensions` for Marimekko, a square matrix for Chord, `ranges`/`measures` for Bullet, and so on.
-> Guarding them needs a per-chart-type required-configuration table, derived the same way `features`
-> was: by reading each component's source, not by guessing. **Not yet built — see the plan.**
+> **The class was therefore broader than `features` — and it is now covered.** `charts/drawability.ts`
+> generalises the guard to all three kinds of missing input; the warm sweep is now **0 of 26**
+> offenders where it was 10. See the section below.
 >
 > **The measurement lesson, which generalises past this widget:** a lazily-loaded component hides its
 > own mount-time races on first render. Any sweep over lazily-split code must run **twice** and report
@@ -110,6 +108,53 @@ are accepted and silently ignored. There is nothing for the widget to absorb her
 is `fillColor` as an accessor, and `"@fn:prop:properties.fill"` reads a colour off each feature in
 both renderers. **This belongs in `docs/page-authoring.md`**, so page authors meet it before they
 design around a capability that does not exist.
+
+---
+
+## Added 2026-09-08 (later) — the guard generalised, VERIFIED warm
+
+`charts/drawability.ts` answers one question before Nivo is asked to draw: *can this chart be drawn
+from what it has been given?* It replaces the `features`-only check, which turned out to be one case of
+a much broader class.
+
+**Three kinds of rule, all measured rather than read out of documentation.** For every chart type that
+threw, two controlled probes — correct configuration with foreign data, and correct data with an empty
+configuration:
+
+| | throws on foreign data | throws on empty configuration |
+|---|---|---|
+| Area Bump, Bullet, Bump, Line, Radial Bar, Time Range | yes | no |
+| Chord, Stream | no | yes |
+| Marimekko, Radar | yes | yes |
+
+So eight were a **data** mismatch, four needed a **configuration** key. A key appears in
+`REQUIRED_CONFIG` **only** because rendering that chart with `{}` was observed to throw — that
+observation is what stops a required-ness rule being invented.
+
+The third rule is the one neither probe alone reveals: **configuration naming fields the data does not
+carry**, where each half is valid alone. A *partial* match deliberately passes — a stacked chart
+legitimately has datums missing some keys, and blanking it would be wrong.
+
+> **VERIFIED 2026-09-08 in the running app.**
+>
+> | | |
+> |---|---|
+> | Playground **warm** sweep, all 26 types | **0 offenders**, 26 of 26 painted — against **10** before |
+> | Playground **cold** sweep | 26 of 26 painted; one React NaN *warning* on Line, pre-existing and not a throw |
+> | 26 gallery chart pages | 26 of 26 drew, **no empty states** |
+> | Claims dashboard (JSON) / (view entities) | **8 of 8** and **4 of 4**, 0 console errors |
+> | Data source page / renderer comparison | 2 of 2 and 3 charts, 0 console errors |
+>
+> **43 chart instances, none of which fell to the empty state.** That regression bed is the point: an
+> over-strict rule blanks a chart that would have drawn perfectly, which is strictly worse than the
+> console noise the guard removes. If a gallery sample ever shows the empty state, a rule here is wrong.
+
+### What is still not covered
+
+The guard inspects **only the first element** of an array payload. A heterogeneous array whose first
+entry is well-formed and whose tenth is not will still reach Nivo. That is deliberate — walking a large
+dataset on every render to find a heterogeneity nobody has produced would cost more than it saves — but
+it is a real edge, and it is why this is a guard rather than a validator.
 
 ---
 

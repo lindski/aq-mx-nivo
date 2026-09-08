@@ -85,7 +85,8 @@ component reads neither — `bindDefs` is called only from `Choropleth`. The rou
 `fillColor` as an accessor. And **Geo Map answers *where*, Choropleth answers *how much*** — whenever
 there is a value per country, Choropleth is the right chart.
 
-Two adjacent Nivo defects are **absorbed in widget code** so a page author never meets them: a missing
-`features` renders the empty state instead of throwing, and `layers` is supplied for `GeoMapCanvas`,
-the only Nivo component that fails to default it. **Both are workarounds with an expiry** — see
-`charts/nivoDefects.ts`, and re-check them on any Nivo upgrade.
+Nivo defects around this are **absorbed in widget code** so a page author never meets them: `layers` is
+supplied for `GeoMapCanvas`, the only Nivo component that fails to default it (`charts/nivoDefects.ts`,
+a workaround with an expiry — re-check it on any Nivo upgrade), and a missing `features` renders the
+empty state instead of throwing. That second one turned out to be one case of a much broader class, now
+covered by `charts/drawability.ts` — see handover §4.6.

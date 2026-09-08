@@ -416,7 +416,37 @@ is recorded here only so a future Nivo upgrade knows what the workaround was for
 **Choose the right one of the two.** Geo Map is a base map with no value scale: it answers *where*, and
 is styled by rule. Whenever there is a value per country, **Choropleth** is the right chart.
 
-### 4.6 Nothing else
+### 4.6 The widget will not draw a chart it knows Nivo would throw on
+
+**This is a guarantee worth relying on, and it changes what a page author has to think about.** Nivo
+dereferences several props without defaulting them, so a chart handed the wrong data or an incomplete
+configuration **throws** rather than rendering badly. AqNivo checks first and reports the **empty**
+state with a detail line naming what is missing.
+
+It matters most on a page that lets the **user choose the chart type**: the type changes in one commit
+and the data and configuration arrive in the next, so for one render the new type holds the old
+payload. Without the guard that render throws, and while `ChartErrorBoundary` catches it, **React logs
+every error a boundary catches and no wrapper can suppress that** — so the console fills up on a page
+that looks and behaves correctly.
+
+What the guard checks, all of it derived by measurement rather than from Nivo's documentation:
+
+| Kind | Applies to | Detail line names |
+|---|---|---|
+| **Geography** | Geo Map, Choropleth | a missing `features` collection |
+| **Element shape** | the six series charts, Chord, Calendar, Time Range, Bullet | a flat list where series are needed, records where a matrix is needed, a missing `day`, missing `ranges`/`measures` |
+| **Required configuration** | Chord, Radar, Stream (`keys`); Marimekko (`id`, `value`, `dimensions`) | the missing key |
+| **Configuration vs data** | Radar, Stream, Marimekko, Chord | configured keys or dimensions the data does not carry; a Chord key count that does not match the matrix |
+
+**A partial match passes deliberately.** A stacked chart legitimately has datums missing some keys — a
+series that starts late, a category with no value this month — so only a datum carrying *none* of the
+configured keys is treated as the wrong payload.
+
+**Only the first element of an array is inspected.** A heterogeneous array whose first entry is
+well-formed and whose tenth is not still reaches Nivo. This is a guard against the wrong payload, not a
+validator of a correct one.
+
+### 4.7 Nothing else
 
 No companion Mendix module, no constants, no Java actions of the widget's own, no entity the widget
 requires. The enclosing data view can be over anything; the widget only needs whatever object carries
